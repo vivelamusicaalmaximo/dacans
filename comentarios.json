@@ -1,0 +1,26 @@
+[
+    {
+        "nombre": "Emilio Soto",
+        "estrellas": 5,
+        "comentario": "Servicio excelente, en ningún negocio me habían atendido tan bien. la maquina funciona perfectamente",
+        "fecha": "05 Jun 2026"
+    },
+    {
+        "nombre": "Pablo",
+        "estrellas": 5,
+        "comentario": "Muy buen servicio lo recomiendo",
+        "fecha": "05 Jun 2026"
+    },
+    {
+        "nombre": "Carlos Mendoza",
+        "estrellas": 5,
+        "comentario": "Excelente servicio. Compré una ThinkPad T14 Clase A y está literalmente como nueva. Súper recomendados.",
+        "fecha": "02 Jun 2026"
+    },
+    {
+        "nombre": "Sofía Rodríguez",
+        "estrellas": 5,
+        "comentario": "La atención por WhatsApp fue muy rápida y profesional. El monitor LG MyView es una joya para mi espacio de trabajo.",
+        "fecha": "28 May 2026"
+    }
+]
