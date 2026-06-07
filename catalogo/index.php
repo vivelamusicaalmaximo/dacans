@@ -422,6 +422,7 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                             <input type="range" id="precioSlider" name="precio_max" min="0" max="<?= $precio_max_db ?>"
                                 step="<?= $precio_max_db / 10 ?>" value="<?= $precio_max ?>"
+                                oninput="document.getElementById('precioTexto').innerText = 'RD$ ' + new Intl.NumberFormat().format(this.value)"
                                 onchange="this.form.submit()" class="w-full accent-blue-600 cursor-pointer">
                             <div class="flex justify-between mt-3 text-[11px] text-slate-400 font-bold">
                                 <span>RD$ 0</span>
@@ -730,6 +731,34 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </main>
     </div>
+
+    <script>
+    // Lógica del Menú Móvil (Header)
+    function toggleMobileMenu() {
+        document.getElementById('mobileMenu').classList.toggle('hidden');
+    }
+
+    // Lógica del Panel de Filtros
+    const openFilters = document.getElementById('openFilters');
+    const closeFilters = document.getElementById('closeFilters');
+    const filtersPanel = document.getElementById('filtersPanel');
+    const overlay = document.getElementById('filtersOverlay');
+
+    function toggleFilters() {
+        const isHidden = filtersPanel.classList.contains('-translate-x-full');
+        if (isHidden) {
+            filtersPanel.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            filtersPanel.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    }
+
+    openFilters.addEventListener('click', toggleFilters);
+    closeFilters.addEventListener('click', toggleFilters);
+    overlay.addEventListener('click', toggleFilters);
+    </script>
 </body>
 
 </html>

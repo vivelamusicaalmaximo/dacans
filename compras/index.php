@@ -242,6 +242,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -252,80 +253,133 @@ try {
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
     <style>
-        body {
-            background: radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 30%), radial-gradient(circle at bottom right, rgba(14,165,233,.08), transparent 30%), linear-gradient(to bottom,#f8fafc,#eef2ff);
-            font-family: Arial, sans-serif;
-        }
-        .card {
-            background: rgba(255,255,255,.88); backdrop-filter: blur(14px); border-radius: 36px; border: 1px solid rgba(226,232,240,.9); box-shadow: 0 20px 45px rgba(15,23,42,.05); overflow: hidden;
-        }
-        table.dataTable { width: 100% !important; border-collapse: separate !important; border-spacing: 0; font-size: 13px; }
-        table.dataTable thead th { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border: none !important; padding: 18px 14px !important; font-size: 12px; text-transform: uppercase; }
-        table.dataTable tbody td { padding: 16px 14px !important; vertical-align: middle; border-bottom: 1px solid #edf2f7; }
-        .status { padding: 7px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; }
-        .action-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 14px; transition: .2s ease; }
-        .action-btn:hover { transform: translateY(-2px); }
+    body {
+        background: radial-gradient(circle at top left, rgba(37, 99, 235, .08), transparent 30%), radial-gradient(circle at bottom right, rgba(14, 165, 233, .08), transparent 30%), linear-gradient(to bottom, #f8fafc, #eef2ff);
+        font-family: Arial, sans-serif;
+    }
+
+    .card {
+        background: rgba(255, 255, 255, .88);
+        backdrop-filter: blur(14px);
+        border-radius: 36px;
+        border: 1px solid rgba(226, 232, 240, .9);
+        box-shadow: 0 20px 45px rgba(15, 23, 42, .05);
+        overflow: hidden;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+
+    table.dataTable thead th {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: white;
+        border: none !important;
+        padding: 18px 14px !important;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    table.dataTable tbody td {
+        padding: 16px 14px !important;
+        vertical-align: middle;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .status {
+        padding: 7px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .action-btn {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        transition: .2s ease;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+    }
     </style>
 </head>
 
 <body class="p-4 md:p-8">
 
-<div class="w-full px-2 space-y-12">
+    <div class="w-full px-2 space-y-12">
 
-    <?php if (!empty($mensaje_success)): ?>
-        <div class="p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-2xl font-bold flex items-center gap-2">
+        <?php if (!empty($mensaje_success)): ?>
+        <div
+            class="p-4 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-2xl font-bold flex items-center gap-2">
             <i class="fa-solid fa-circle-check text-xl"></i> <?= htmlspecialchars($mensaje_success) ?>
         </div>
-    <?php endif; ?>
-    <?php if (!empty($mensaje_error)): ?>
+        <?php endif; ?>
+        <?php if (!empty($mensaje_error)): ?>
         <div class="p-4 bg-red-100 border border-red-300 text-red-800 rounded-2xl font-bold flex items-center gap-2">
             <i class="fa-solid fa-circle-xmark text-xl"></i> <?= htmlspecialchars($mensaje_error) ?>
         </div>
-    <?php endif; ?>
+        <?php endif; ?>
 
-    <div class="flex flex-col lg:flex-row justify-between items-center gap-5">
-        <div class="flex items-center gap-5">
-            <div class="bg-white p-4 rounded-[28px] shadow-xl border border-slate-200">
-                <img src="../img/logo.webp" class="h-14 object-contain">
+        <div class="flex flex-col lg:flex-row justify-between items-center gap-5">
+            <div class="flex items-center gap-5">
+                <div class="bg-white p-4 rounded-[28px] shadow-xl border border-slate-200">
+                    <img src="../img/logo.webp" class="h-14 object-contain">
+                </div>
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-900">Compras de Artículos</h1>
+                    <p class="text-slate-500 mt-2 text-sm md:text-base">Gestión avanzada de compras, costos y ganancias
+                    </p>
+                </div>
             </div>
-            <div>
-                <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-900">Compras de Artículos</h1>
-                <p class="text-slate-500 mt-2 text-sm md:text-base">Gestión avanzada de compras, costos y ganancias</p>
+            <div class="flex flex-wrap gap-3">
+                <a href="crear.php"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i
+                        class="fa-solid fa-plus mr-2"></i> Nueva Compra</a>
+                <a href="importar_excel.php"
+                    class="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i
+                        class="fa-solid fa-file-excel mr-2"></i> Cargar Excel</a>
+                <a href="../mantenimiento"
+                    class="bg-slate-900 hover:bg-black text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i
+                        class="fa-solid fa-arrow-left mr-2"></i> Volver</a>
             </div>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a href="crear.php" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i class="fa-solid fa-plus mr-2"></i> Nueva Compra</a>
-            <a href="importar_excel.php" class="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i class="fa-solid fa-file-excel mr-2"></i> Cargar Excel</a>
-            <a href="../mantenimiento" class="bg-slate-900 hover:bg-black text-white px-6 py-4 rounded-2xl font-black shadow-lg transition"><i class="fa-solid fa-arrow-left mr-2"></i> Volver</a>
-        </div>
-    </div>
 
-    <div class="card p-6">
-        <div class="mb-4 flex items-center gap-2">
-            <div class="w-2 h-6 bg-blue-600 rounded-full"></div>
-            <h2 class="text-xl font-black text-slate-800">Lotes de Compras Registrados</h2>
-        </div>
-        <div class="w-full">
-            <table id="tablaCompras" class="display w-full">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Item ID</th>
-                        <th>Direccion Usada</th>
-                        <th>Artículo</th> 
-                        <th>Cantidad</th>
-                        <th>USD</th>
-                        <th>DOP</th>
-                        <th>Costo Unitario</th>
-                        <th>Precio Sugerido</th>
-                        <th>Status</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($articulos) && is_array($articulos)): ?>
+        <div class="card p-6">
+            <div class="mb-4 flex items-center gap-2">
+                <div class="w-2 h-6 bg-blue-600 rounded-full"></div>
+                <h2 class="text-xl font-black text-slate-800">Lotes de Compras Registrados</h2>
+            </div>
+            <div class="w-full">
+                <table id="tablaCompras" class="display w-full">
+                    <thead>
+                        <tr>
+                            <th>Acciones</th>
+
+
+                            <th>Direccion Usada</th>
+                            <th>Artículo</th>
+                            <th>Cantidad</th>
+                            <th>USD</th>
+                            <th>DOP</th>
+                            <th>Costo Unitario</th>
+                            <th>Precio Sugerido</th>
+                            <th>Status</th>
+                            <th>Item ID</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($articulos) && is_array($articulos)): ?>
                         <?php foreach ($articulos as $articulo): ?>
-                            <?php
+                        <?php
                                 $id_art        = (int)($articulo['id'] ?? 0);
                                 $item_id       = trim($articulo['item_id'] ?? '');
                                 $direccion     = htmlspecialchars($articulo['direccion_usada'] ?? 'N/A');
@@ -343,196 +397,218 @@ try {
                                 
                                 $estado        = htmlspecialchars($articulo['status_compra'] ?? 'N/A');
                             ?>
-                            <tr>
-                                <td class="font-black text-blue-700">#<?= $id_art ?></td>
-                                <td class="font-mono text-slate-600 font-bold">
-                                    <?php if (!empty($item_id)): ?>
-                                        <a href="https://www.ebay.com/itm/<?= urlencode($item_id) ?>" 
-                                           target="_blank" 
-                                           class="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1" 
-                                           title="Ver artículo en eBay">
-                                             <?= htmlspecialchars($item_id) ?>
-                                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400"></i>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="text-slate-400 font-normal">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-slate-700 font-medium"><?= $direccion ?></td>
-                                <td class="font-bold text-slate-800"><?= htmlspecialchars($nombre_art) ?></td>
-                                <td class="font-bold text-center bg-slate-50 rounded-lg"><?= $cantidad ?></td>
-                                <td>$<?= number_format($costoUSD, 2) ?></td>
-                                <td>RD$<?= number_format($costoDOP, 2) ?></td>
-                                <td class="font-black text-cyan-700">RD$<?= number_format($costoUnitario, 2) ?></td>
-                                <td class="font-black text-emerald-600">RD$<?= number_format($costoSugerido, 2) ?></td>
-                                <td><span class="status bg-blue-100 text-blue-700"><?= $estado ?></span></td>
-                                <td>
-                                    <div class="flex items-center gap-1.5">
-                                        <a href="editar.php?id=<?= $id_art ?>" class="action-btn bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-500/10" title="Editar Compra"><i class="fa-solid fa-pen"></i></a>
-                                        <a href="eliminar.php?id=<?= $id_art ?>" onclick="return confirm('¿Seguro que deseas eliminar esta compra?')" class="action-btn bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/10" title="Eliminar"><i class="fa-solid fa-trash"></i></a>
-                                        
-                                        <button type="button" 
-                                            data-id="<?= $id_art ?>"
-                                            data-nombre="<?= htmlspecialchars($nombre_art, ENT_QUOTES, 'UTF-8') ?>"
-                                            data-cantidad="<?= $cantidad ?>"
-                                            data-sugerido="<?= $costoSugerido ?>"
-                                            class="btn-abrir-modal action-btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/10" 
-                                            title="Personalizar y enviar a inventario">
-                                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
                         <tr>
-                            <td colspan="11" class="text-center text-slate-400 py-6">No hay registros de compras disponibles.</td>
+                            <td>
+                                <div class="flex items-center gap-1.5">
+                                    <a href="editar.php?id=<?= $id_art ?>"
+                                        class="action-btn bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-500/10"
+                                        title="Editar Compra"><i class="fa-solid fa-pen"></i></a>
+                                    <a href="eliminar.php?id=<?= $id_art ?>"
+                                        onclick="return confirm('¿Seguro que deseas eliminar esta compra?')"
+                                        class="action-btn bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/10"
+                                        title="Eliminar"><i class="fa-solid fa-trash"></i></a>
+
+                                    <button type="button" data-id="<?= $id_art ?>"
+                                        data-nombre="<?= htmlspecialchars($nombre_art, ENT_QUOTES, 'UTF-8') ?>"
+                                        data-cantidad="<?= $cantidad ?>" data-sugerido="<?= $costoSugerido ?>"
+                                        class="btn-abrir-modal action-btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/10"
+                                        title="Personalizar y enviar a inventario">
+                                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="font-black text-blue-700">#<?= $id_art ?></td>
+                            <td class="font-mono text-slate-600 font-bold">
+                                <?php if (!empty($item_id)): ?>
+                                <a href="https://www.ebay.com/itm/<?= urlencode($item_id) ?>" target="_blank"
+                                    class="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                                    title="Ver artículo en eBay">
+                                    <?= htmlspecialchars($item_id) ?>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400"></i>
+                                </a>
+                                <?php else: ?>
+                                <span class="text-slate-400 font-normal">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-slate-700 font-medium"><?= $direccion ?></td>
+                            <td class="font-bold text-slate-800"><?= htmlspecialchars($nombre_art) ?></td>
+                            <td class="font-bold text-center bg-slate-50 rounded-lg"><?= $cantidad ?></td>
+                            <td>$<?= number_format($costoUSD, 2) ?></td>
+                            <td>RD$<?= number_format($costoDOP, 2) ?></td>
+                            <td class="font-black text-cyan-700">RD$<?= number_format($costoUnitario, 2) ?></td>
+                            <td class="font-black text-emerald-600">RD$<?= number_format($costoSugerido, 2) ?></td>
+                            <td><span class="status bg-blue-100 text-blue-700"><?= $estado ?></span></td>
+
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card p-6 bg-white/90">
-        <div class="mb-4 flex items-center gap-2">
-            <div class="w-2 h-6 bg-emerald-600 rounded-full"></div>
-            <h2 class="text-xl font-black text-slate-800">Historial de Artículos Guardados en Inventario</h2>
-        </div>
-        <div class="w-full">
-            <table id="tablaHistorial" class="display w-full">
-                <thead>
-                    <tr>
-                        <th>ID Local</th>
-                        <th>Marca / Modelo</th>
-                        <th>No. Serie</th>
-                        <th>Procesador</th>
-                        <th>Memoria (RAM)</th>
-                        <th>Disco</th>
-                        <th>Precio Venta</th>
-                        <th>Estado</th>
-                        <th>Fecha Registro</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($historial_agregados as $item): ?>
-                    <tr>
-                        <td class="font-mono font-black text-blue-600"><?= htmlspecialchars($item['id_local']) ?></td>
-                        <td class="font-bold text-slate-800">
-                            <?= htmlspecialchars(($item['equipo_marca'] ?? '') . ' ' . ($item['equipo_modelo'] ?? '')) ?>
-                        </td>
-                        <td class="font-mono text-slate-600"><?= htmlspecialchars($item['serie'] ?? 'PENDIENTE') ?></td>
-                        <td><?= htmlspecialchars(($item['proc_marca'] ?? '') . ' ' . ($item['proc_modelo'] ?? '')) ?></td>
-                        <td class="font-semibold"><?= htmlspecialchars($item['memoria'] ?? '') ?></td>
-                        <td class="font-semibold"><?= htmlspecialchars($item['disco'] ?? '') ?></td>
-                        <td class="font-black text-emerald-600">RD$<?= number_format((float)$item['precio'], 2) ?></td>
-                        <td>
-                            <span class="status bg-amber-100 text-amber-800">
-                                <?= htmlspecialchars($item['estado'] ?? 'En camino') ?>
-                            </span>
-                        </td>
-                        <td class="text-slate-400 select-none"><?= htmlspecialchars($item['created_at'] ?? '') ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div id="modalMigrarDetallado" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-[32px] shadow-2xl border border-slate-100 max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
-        
-        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-black tracking-tight">Personalización con Espejo de Datos</h3>
-                    <p class="text-xs text-slate-400">💡 Modifica la <strong>Unidad #1 (Maestra)</strong> para replicar el contenido en cascada.</p>
-                </div>
+                        <?php endforeach; ?>
+                        <?php else: ?>
+                        <tr>
+                            <td colspan="11" class="text-center text-slate-400 py-6">No hay registros de compras
+                                disponibles.</td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-            <button type="button" onclick="cerrarModal()" class="text-slate-400 hover:text-white transition text-xl"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        
-        <form method="POST" class="flex flex-col flex-1 overflow-hidden">
-            <div id="contenedorEquiposDinamicos" class="p-5 space-y-6 overflow-y-auto flex-1 bg-slate-100">
-                </div>
 
-            <div class="p-4 bg-white border-t border-slate-200 flex items-center justify-between shadow-lg">
-                <p class="text-xs font-bold text-blue-600 flex items-center gap-1">
-                    <i class="fa-solid fa-truck-ramp-box"></i> Estatus por defecto: "En camino"
-                </p>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-xs font-bold transition">Cancelar</button>
-                    <button type="submit" name="migrar_producto_detallado" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                        <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Guardar en Inventario
-                    </button>
-                </div>
+        <div class="card p-6 bg-white/90">
+            <div class="mb-4 flex items-center gap-2">
+                <div class="w-2 h-6 bg-emerald-600 rounded-full"></div>
+                <h2 class="text-xl font-black text-slate-800">Historial de Artículos Guardados en Inventario</h2>
             </div>
-        </form>
+            <div class="w-full">
+                <table id="tablaHistorial" class="display w-full">
+                    <thead>
+                        <tr>
+                            <th>ID Local</th>
+                            <th>Marca / Modelo</th>
+                            <th>No. Serie</th>
+                            <th>Procesador</th>
+                            <th>Memoria (RAM)</th>
+                            <th>Disco</th>
+                            <th>Precio Venta</th>
+                            <th>Estado</th>
+                            <th>Fecha Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($historial_agregados as $item): ?>
+                        <tr>
+                            <td class="font-mono font-black text-blue-600"><?= htmlspecialchars($item['id_local']) ?>
+                            </td>
+                            <td class="font-bold text-slate-800">
+                                <?= htmlspecialchars(($item['equipo_marca'] ?? '') . ' ' . ($item['equipo_modelo'] ?? '')) ?>
+                            </td>
+                            <td class="font-mono text-slate-600"><?= htmlspecialchars($item['serie'] ?? 'PENDIENTE') ?>
+                            </td>
+                            <td><?= htmlspecialchars(($item['proc_marca'] ?? '') . ' ' . ($item['proc_modelo'] ?? '')) ?>
+                            </td>
+                            <td class="font-semibold"><?= htmlspecialchars($item['memoria'] ?? '') ?></td>
+                            <td class="font-semibold"><?= htmlspecialchars($item['disco'] ?? '') ?></td>
+                            <td class="font-black text-emerald-600">RD$<?= number_format((float)$item['precio'], 2) ?>
+                            </td>
+                            <td>
+                                <span class="status bg-amber-100 text-amber-800">
+                                    <?= htmlspecialchars($item['estado'] ?? 'En camino') ?>
+                                </span>
+                            </td>
+                            <td class="text-slate-400 select-none"><?= htmlspecialchars($item['created_at'] ?? '') ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
 
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <div id="modalMigrarDetallado"
+        class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-[32px] shadow-2xl border border-slate-100 max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
 
-<script>
-let ultimoNumeroBaseGlobal = parseInt("<?= $ultimo_numero_base ?>") || 1000;
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black tracking-tight">Personalización con Espejo de Datos</h3>
+                        <p class="text-xs text-slate-400">💡 Modifica la <strong>Unidad #1 (Maestra)</strong> para
+                            replicar el contenido en cascada.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="cerrarModal()"
+                    class="text-slate-400 hover:text-white transition text-xl"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
 
-$(document).ready(function () {
-    $('#tablaCompras').DataTable({
-        responsive: true,
-        pageLength: 10,
-        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' }
+            <form method="POST" class="flex flex-col flex-1 overflow-hidden">
+                <div id="contenedorEquiposDinamicos" class="p-5 space-y-6 overflow-y-auto flex-1 bg-slate-100">
+                </div>
+
+                <div class="p-4 bg-white border-t border-slate-200 flex items-center justify-between shadow-lg">
+                    <p class="text-xs font-bold text-blue-600 flex items-center gap-1">
+                        <i class="fa-solid fa-truck-ramp-box"></i> Estatus por defecto: "En camino"
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="cerrarModal()"
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-xs font-bold transition">Cancelar</button>
+                        <button type="submit" name="migrar_producto_detallado"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-md transition">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Guardar en Inventario
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+    let ultimoNumeroBaseGlobal = parseInt("<?= $ultimo_numero_base ?>") || 1000;
+
+    $(document).ready(function() {
+        $('#tablaCompras').DataTable({
+            responsive: true,
+            pageLength: 10,
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            }
+        });
+
+        $('#tablaHistorial').DataTable({
+            responsive: true,
+            pageLength: 5,
+            order: [
+                [0, 'desc']
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            }
+        });
+
+        // Delegación de eventos DataTables corregido para capturar fila actual
+        $('#tablaCompras tbody').on('click', '.btn-abrir-modal', function() {
+            const idCompra = $(this).attr('data-id');
+            const nombreArticulo = $(this).attr('data-nombre');
+            const cantidad = parseInt($(this).attr('data-cantidad')) || 0;
+            const precioSugerido = parseFloat($(this).attr('data-sugerido')) || 0;
+
+            prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSugerido);
+        });
+
+        // EVENTO ESPEJO: Copia los valores modificados de la Unidad #1 al resto de elementos
+        $(document).on('input change', '.clase-origen', function() {
+            const campoDestino = $(this).attr('data-campo');
+            const nuevoValor = $(this).val();
+
+            $(`.clase-espejo[data-campo="${campoDestino}"]`).val(nuevoValor);
+        });
     });
 
-    $('#tablaHistorial').DataTable({
-        responsive: true,
-        pageLength: 5,
-        order: [[0, 'desc']],
-        language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' }
-    });
+    function prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSugerido) {
+        const contenedor = document.getElementById('contenedorEquiposDinamicos');
+        if (!contenedor) return;
 
-    // Delegación de eventos DataTables corregido para capturar fila actual
-    $('#tablaCompras tbody').on('click', '.btn-abrir-modal', function () {
-        const idCompra = $(this).attr('data-id'); 
-        const nombreArticulo = $(this).attr('data-nombre');
-        const cantidad = parseInt($(this).attr('data-cantidad')) || 0;
-        const precioSugerido = parseFloat($(this).attr('data-sugerido')) || 0;
+        contenedor.innerHTML = '';
+        document.getElementById('modalMigrarDetallado').classList.remove('hidden');
 
-        prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSugerido);
-    });
+        const palabras = nombreArticulo.trim().split(' ');
+        const marcaSugerida = palabras[0] || '';
+        const modeloSugerido = palabras.slice(1).join(' ') || 'Genérico';
 
-    // EVENTO ESPEJO: Copia los valores modificados de la Unidad #1 al resto de elementos
-    $(document).on('input change', '.clase-origen', function() {
-        const campoDestino = $(this).attr('data-campo');
-        const nuevoValor = $(this).val();
-        
-        $(`.clase-espejo[data-campo="${campoDestino}"]`).val(nuevoValor);
-    });
-});
+        let correlativoTemporal = ultimoNumeroBaseGlobal;
 
-function prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSugerido) {
-    const contenedor = document.getElementById('contenedorEquiposDinamicos');
-    if(!contenedor) return;
+        for (let i = 0; i < cantidad; i++) {
+            correlativoTemporal++;
+            const idLocalAsignado = "DC-2026-" + correlativoTemporal;
+            const inputClass = (i === 0) ? 'clase-origen' : 'clase-espejo';
 
-    contenedor.innerHTML = ''; 
-    document.getElementById('modalMigrarDetallado').classList.remove('hidden');
-
-    const palabras = nombreArticulo.trim().split(' ');
-    const marcaSugerida = palabras[0] || '';
-    const modeloSugerido = palabras.slice(1).join(' ') || 'Genérico';
-
-    let correlativoTemporal = ultimoNumeroBaseGlobal;
-
-    for (let i = 0; i < cantidad; i++) {
-        correlativoTemporal++; 
-        const idLocalAsignado = "DC-2026-" + correlativoTemporal;
-        const inputClass = (i === 0) ? 'clase-origen' : 'clase-espejo';
-
-        const cardHtml = `
+            const cardHtml = `
             <div class="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden border-l-4 ${i === 0 ? 'border-l-amber-500' : 'border-l-blue-600'} mb-4">
                 
                 <input type="hidden" name="equipo[${i}][id_original_compra]" value="${idCompra}">
@@ -642,13 +718,14 @@ function prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSu
                 </div>
             </div>
         `;
-        contenedor.insertAdjacentHTML('beforeend', cardHtml);
+            contenedor.insertAdjacentHTML('beforeend', cardHtml);
+        }
     }
-}
 
-function cerrarModal() {
-    document.getElementById('modalMigrarDetallado').classList.add('hidden');
-}
-</script>
+    function cerrarModal() {
+        document.getElementById('modalMigrarDetallado').classList.add('hidden');
+    }
+    </script>
 </body>
+
 </html>

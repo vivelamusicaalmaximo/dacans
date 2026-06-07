@@ -1,5 +1,11 @@
 [
     {
+        "nombre": "Alexander Batista",
+        "estrellas": 5,
+        "comentario": "Muy bueno el producto, y buen servicio",
+        "fecha": "06 Jun 2026"
+    },
+    {
         "nombre": "Emilio Soto",
         "estrellas": 5,
         "comentario": "Servicio excelente, en ningún negocio me habían atendido tan bien. la maquina funciona perfectamente",
