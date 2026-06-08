@@ -74,6 +74,7 @@ if (isset($_POST['migrar_producto_detallado'])) {
                 $id_local_evaluar, $serie,
                 trim($eq['proc_marca'] ?? ''), trim($eq['proc_familia'] ?? ''),
                 trim($eq['proc_generacion'] ?? ''), trim($eq['proc_modelo'] ?? ''),
+                trim($eq['numero_rastreo'] ?? ''),
                 trim($eq['graficos'] ?? ''), trim($eq['g_expandible'] ?? ''),
                 trim($eq['memoria'] ?? ''), trim($eq['disco'] ?? ''),
                 trim($eq['pantalla'] ?? ''), trim($eq['p_resolucion'] ?? ''),
@@ -362,17 +363,17 @@ try {
                     <thead>
                         <tr>
                             <th>Acciones</th>
-
-
-                            <th>Direccion Usada</th>
-                            <th>Artículo</th>
+                            <th>Item ID</th>
+                            <th>ID Artículo</th>
+                            <th>Dirección Usada</th>
+                            <th>Numero Rastreo</th>
+                            <th>Descripcion</th>
                             <th>Cantidad</th>
                             <th>USD</th>
-                            <th>DOP</th>
+                            <th>DOP (Lote)</th>
                             <th>Costo Unitario</th>
                             <th>Precio Sugerido</th>
                             <th>Status</th>
-                            <th>Item ID</th>
 
                         </tr>
                     </thead>
@@ -383,6 +384,7 @@ try {
                                 $id_art        = (int)($articulo['id'] ?? 0);
                                 $item_id       = trim($articulo['item_id'] ?? '');
                                 $direccion     = htmlspecialchars($articulo['direccion_usada'] ?? 'N/A');
+                                $numero_rastreo_us = htmlspecialchars($articulo['numero_rastreo_us'] ?? 'N/A');
                                 $nombre_art    = $articulo['nombre_articulo'] ?? 'Artículo sin nombre';
                                 $cantidad      = (int)($articulo['cantidad_articulos'] ?? 0);
                                 $costoDOP      = (float)($articulo['costo_dop'] ?? 0);
@@ -417,6 +419,7 @@ try {
                                     </button>
                                 </div>
                             </td>
+
                             <td class="font-black text-blue-700">#<?= $id_art ?></td>
                             <td class="font-mono text-slate-600 font-bold">
                                 <?php if (!empty($item_id)): ?>
@@ -431,6 +434,7 @@ try {
                                 <?php endif; ?>
                             </td>
                             <td class="text-slate-700 font-medium"><?= $direccion ?></td>
+                            <td class="font-bold text-slate-800"><?= htmlspecialchars($numero_rastreo_us) ?></td>
                             <td class="font-bold text-slate-800"><?= htmlspecialchars($nombre_art) ?></td>
                             <td class="font-bold text-center bg-slate-50 rounded-lg"><?= $cantidad ?></td>
                             <td>$<?= number_format($costoUSD, 2) ?></td>

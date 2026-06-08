@@ -591,20 +591,17 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div
                         class="h-40 rounded-[1.5rem] bg-gradient-to-br from-slate-50 to-white border border-slate-100 flex items-center justify-center overflow-hidden relative mb-4 cursor-zoom-in group">
-
                         <?php if (!empty($p['clase'])): ?>
                         <?php 
-                            $clase_valor = strtoupper(trim($p['clase']));
-                            
-                            $bg_color = match($clase_valor) {
-                                'A' => 'bg-blue-600/90',
-                                'B' => 'bg-emerald-600/90',
-                                'C' => 'bg-amber-500/90 text-slate-900',
-                                default => 'bg-slate-600/90',
-                            };
-
-                            $text_color = ($clase_valor === 'C') ? 'text-slate-900' : 'text-white';
-                        ?>
+                    $clase_valor = strtoupper(trim($p['clase']));
+                    $bg_color = match($clase_valor) {
+                        'A' => 'bg-blue-600/90',
+                        'B' => 'bg-emerald-600/90',
+                        'C' => 'bg-amber-500/90 text-slate-900',
+                        default => 'bg-slate-600/90',
+                    };
+                    $text_color = ($clase_valor === 'C') ? 'text-slate-900' : 'text-white';
+                ?>
                         <span
                             class="absolute top-3 right-3 z-30 <?= $bg_color ?> <?= $text_color ?> backdrop-blur-sm text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-xl shadow-sm">
                             <?= htmlspecialchars('Clase ' . $p['clase']) ?>
@@ -613,13 +610,13 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                         <?php if (!empty($p['imagen_url'])): ?>
                         <?php 
-                            $galeria = [$p['imagen_url']];
-                            if (!empty($p['imagenes_adicionales'])) {
-                                $extras = explode(',', $p['imagenes_adicionales']);
-                                $galeria = array_merge($galeria, array_map('trim', $extras));
-                            }
-                            $galeria_json = htmlspecialchars(json_encode($galeria), ENT_QUOTES, 'UTF-8');
-                        ?>
+                    $galeria = [$p['imagen_url']];
+                    if (!empty($p['imagenes_adicionales'])) {
+                        $extras = explode(',', $p['imagenes_adicionales']);
+                        $galeria = array_merge($galeria, array_map('trim', $extras));
+                    }
+                    $galeria_json = htmlspecialchars(json_encode($galeria), ENT_QUOTES, 'UTF-8');
+                ?>
                         <img src="<?= htmlspecialchars($p['imagen_url']) ?>"
                             alt="<?= htmlspecialchars($p['equipo_modelo']) ?>" data-images="<?= $galeria_json ?>"
                             onclick="openModal(this)"
@@ -670,55 +667,72 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                     </div>
 
-                    <div class="border-t border-slate-100 pt-4 flex items-center justify-between gap-3">
-                        <div>
+                    <div class="border-t border-slate-100 pt-3 flex items-center justify-between gap-2">
+                        <div class="flex-shrink-0">
                             <span
-                                class="block text-[9px] uppercase tracking-widest text-slate-400 font-black">Precio</span>
+                                class="block text-[8px] uppercase tracking-widest text-slate-400 font-black">Precio</span>
                             <span
-                                class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 leading-none">
+                                class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 leading-none">
                                 <?= !empty($p['precio']) ? 'RD$ ' . number_format((float)$p['precio'], 0) : 'Consultar' ?>
                             </span>
                         </div>
 
                         <?php
-                        $codigoBase = $p['id_local'] ?? '';
-                    $codigoFinal = !empty($codigoBase) ? mb_substr((string)$codigoBase, -5, null, 'UTF-8') : '00000';
+                $codigoBase = $p['id_local'] ?? '';
+                $codigoFinal = !empty($codigoBase) ? mb_substr((string)$codigoBase, -5, null, 'UTF-8') : '00000';
 
-                        // Emojis en código binario compatible
-                        $emoji_saludo    = "\xF0\x9F\x91\x8B"; // 👋
-                        $emoji_medalla   = "\xF0\x9F\x8F\x85"; // 🏅
-                        $emoji_pantalla  = "\xF0\x9F\x92\xBB"; // 🖥️
-                        $emoji_engranaje = "\xE2\x9A\x99\xEF\xB8\x8F"; // ⚙️
-                        $emoji_disquete  = "\xF0\x9F\x92\xBE"; // 💾
-                        $emoji_caja      = "\xF0\x9F\x93\xA6"; // 📦
-                        $emoji_dinero    = "\xF0\x9F\x92\xB0"; // 💰
-                        $emoji_marcador  = "\xF0\x9F\x94\x96"; // 🔖
+                $emoji_saludo    = "\xF0\x9F\x91\x8B"; 
+                $emoji_medalla   = "\xF0\x9F\x8F\x85"; 
+                $emoji_pantalla  = "\xF0\x9F\x92\xBB"; 
+                $emoji_engranaje = "\xE2\x9A\x99\xEF\xB8\x8F"; 
+                $emoji_disquete  = "\xF0\x9F\x92\xBE"; 
+                $emoji_caja      = "\xF0\x9F\x93\xA6"; 
+                $emoji_dinero    = "\xF0\x9F\x92\xB0"; 
+                $emoji_marcador  = "\xF0\x9F\x94\x96"; 
 
-                        // Formatear la explicación de la condición sin acentos
-                        $clase_letra = !empty($p['clase']) ? strtoupper(trim($p['clase'])) : 'N/A';
-                        $clase_explicacion = match($clase_letra) {
-                            'A' => "Clase A (Condicion excelente, como nueva)",
-                            'B' => "Clase B (Buen estado, marcas de uso ligeras)",
-                            'C' => "Clase C (Signos de uso notables, gran precio)",
-                            default => "Clase " . $clase_letra
-                        };
+                $clase_letra = !empty($p['clase']) ? strtoupper(trim($p['clase'])) : 'N/A';
+                $clase_explicacion = match($clase_letra) {
+                    'A' => "Clase A (Condicion excelente, como nueva)",
+                    'B' => "Clase B (Buen estado, marcas de uso ligeras)",
+                    'C' => "Clase C (Signos de uso notables, gran precio)",
+                    default => "Clase " . $clase_letra
+                };
 
-                        // Construcción limpia y completa de la cadena de texto
-                        $texto = "{$emoji_saludo} Hola, me interesa este equipo:\n\n";
-                        $texto .= "{$emoji_medalla} Condicion: {$clase_explicacion}\n\n";
-                        $texto .= "{$emoji_pantalla} {$p['equipo_marca']} {$p['equipo_modelo']}\n";
-                        $texto .= "{$emoji_engranaje} Procesador: {$p['proc_marca']} {$p['proc_modelo']}\n";
-                        $texto .= "{$emoji_disquete} RAM: {$p['memoria']}\n";
-                        $texto .= "{$emoji_caja} Disco: {$p['disco']}\n";
-                        $texto .= "{$emoji_dinero} Precio: RD$ " . (!empty($p['precio']) ? number_format((float)$p['precio'], 0) : 'Consultar') . "\n";
-                        $texto .= "{$emoji_marcador} Codigo: {$codigoFinal}\n";
-                        ?>
+                $texto = "{$emoji_saludo} Hola, me interesa este equipo:\n\n";
+                $texto .= "{$emoji_medalla} Condicion: {$clase_explicacion}\n\n";
+                $texto .= "{$emoji_pantalla} {$p['equipo_marca']} {$p['equipo_modelo']}\n";
+                $texto .= "{$emoji_engranaje} Procesador: {$p['proc_marca']} {$p['proc_modelo']}\n";
+                $texto .= "{$emoji_disquete} RAM: {$p['memoria']}\n";
+                $texto .= "{$emoji_caja} Disco: {$p['disco']}\n";
+                $texto .= "{$emoji_dinero} Precio: RD$ " . (!empty($p['precio']) ? number_format((float)$p['precio'], 0) : 'Consultar') . "\n";
+                $texto .= "{$emoji_marcador} Codigo: {$codigoFinal}\n";
+                ?>
 
-                        <a href="https://wa.me/18495886436?text=<?= urlencode($texto) ?>" target="_blank"
-                            rel="noopener noreferrer" onclick="event.stopPropagation();"
-                            class="relative z-50 bg-gradient-to-r from-green-500 to-green-700 text-white w-14 h-14 rounded-2xl shadow-xl hover:scale-105 transition flex items-center justify-center flex-shrink-0">
-                            <i class="fa-brands fa-whatsapp text-xl"></i>
-                        </a>
+                        <div class="flex items-center gap-1.5 flex-1 justify-end max-w-[175px]">
+                            <a href="https://wa.me/18495886436?text=<?= urlencode($texto) ?>" target="_blank"
+                                rel="noopener noreferrer" onclick="event.stopPropagation();"
+                                title="Consultar por WhatsApp"
+                                class="relative z-50 bg-gradient-to-r from-green-500 to-green-600 text-white w-10 h-10 rounded-xl shadow-sm hover:scale-105 transition flex items-center justify-center flex-shrink-0">
+                                <i class="fa-brands fa-whatsapp text-lg"></i>
+                            </a>
+
+                            <?php if (!empty($p['precio']) && $p['estado'] !== 'Vendida'): ?>
+                            <?php 
+        // CAMBIO AQUÍ: Ahora apunta a tu archivo local de precompra
+      $link_pago = "../precompra.php?id=" . urlencode($p['id_local']);
+    ?>
+                            <a href="<?= $link_pago ?>" rel="noopener noreferrer" onclick="event.stopPropagation();"
+                                title="Comprar en Línea"
+                                class="relative z-50 bg-gradient-to-r from-blue-600 to-indigo-700 text-white w-9 h-9 rounded-xl shadow-sm hover:scale-105 active:scale-95 transition flex items-center justify-center">
+                                <i class="fa-solid fa-credit-card text-sm"></i>
+                            </a>
+                            <?php else: ?>
+                            <button disabled title="No disponible"
+                                class="bg-slate-100 text-slate-300 w-9 h-9 rounded-xl transition flex items-center justify-center cursor-not-allowed">
+                                <i class="fa-solid fa-ban text-sm"></i>
+                            </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -729,6 +743,59 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 <?php endif; ?>
             </div>
+        </main>
+        <div id="imageModal"
+            class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center p-4 md:p-10 transition-all duration-300 opacity-0">
+            <button onclick="closeModal()"
+                class="absolute top-6 right-6 text-white/80 hover:text-white text-3xl z-[110] bg-white/10 w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="relative max-w-5xl w-full h-[60vh] md:h-[70vh] flex items-center justify-center">
+                <button id="prevBtn" onclick="changeImage(-1)"
+                    class="absolute left-2 md:left-6 text-white/80 hover:text-white text-2xl md:text-4xl z-50 bg-black/40 p-3 md:p-4 rounded-full transition hover:bg-black/60">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+
+                <img id="modalImage" src="" class="max-w-full max-h-full object-contain select-none rounded-lg">
+
+                <button id="nextBtn" onclick="changeImage(1)"
+                    class="absolute right-2 md:right-6 text-white/80 hover:text-white text-2xl md:text-4xl z-50 bg-black/40 p-3 md:p-4 rounded-full transition hover:bg-black/60">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div id="modalCounter" class="text-white/60 text-sm font-bold mt-4 tracking-widest uppercase"></div>
+            <div id="modalThumbnails" class="flex gap-2 mt-4 overflow-x-auto max-w-full p-2"></div>
+        </div>
+        </main>
+        <div id="imageModal"
+            class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center p-4 md:p-10 transition-all duration-300 opacity-0">
+
+            <button onclick="closeModal()"
+                class="absolute top-6 right-6 text-white/80 hover:text-white text-3xl z-[110] bg-white/10 w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/20 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="relative max-w-5xl w-full h-[60vh] md:h-[70vh] flex items-center justify-center">
+
+                <button id="prevBtn" onclick="changeImage(-1)"
+                    class="absolute left-2 md:left-6 text-white/80 hover:text-white text-2xl md:text-4xl z-50 bg-black/40 p-3 md:p-4 rounded-full transition hover:bg-black/60">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+
+                <img id="modalImage" src="" class="max-w-full max-h-full object-contain select-none rounded-lg">
+
+                <button id="nextBtn" onclick="changeImage(1)"
+                    class="absolute right-2 md:right-6 text-white/80 hover:text-white text-2xl md:text-4xl z-50 bg-black/40 p-3 md:p-4 rounded-full transition hover:bg-black/60">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div id="modalCounter" class="text-white/60 text-sm font-bold mt-4 tracking-widest uppercase"></div>
+
+            <div id="modalThumbnails" class="flex gap-2 mt-4 overflow-x-auto max-w-full p-2"></div>
+        </div>
         </main>
     </div>
 
@@ -755,10 +822,155 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
-    openFilters.addEventListener('click', toggleFilters);
-    closeFilters.addEventListener('click', toggleFilters);
-    overlay.addEventListener('click', toggleFilters);
+
+    // --- CONTROL DE FILTROS RESPONSIVE (Aislado para evitar errores de duplicidad) ---
+    {
+        const filtersPanel = document.getElementById('filtersPanel');
+        const filtersOverlay = document.getElementById('filtersOverlay');
+        const openFilters = document.getElementById('openFilters');
+        const closeFilters = document.getElementById('closeFilters');
+
+        if (openFilters && filtersPanel && filtersOverlay) {
+            openFilters.addEventListener('click', () => {
+                filtersPanel.classList.remove('-translate-x-full');
+                filtersOverlay.classList.remove('hidden');
+            });
+        }
+
+        if (closeFilters && filtersPanel && filtersOverlay) {
+            closeFilters.addEventListener('click', () => {
+                filtersPanel.classList.add('-translate-x-full');
+                filtersOverlay.classList.add('hidden');
+            });
+        }
+
+        if (filtersOverlay && filtersPanel) {
+            filtersOverlay.addEventListener('click', () => {
+                filtersPanel.classList.add('-translate-x-full');
+                filtersOverlay.classList.add('hidden');
+            });
+        }
+    }
+
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobileMenu');
+        if (menu) {
+            menu.classList.toggle('hidden');
+        }
+    }
+
+    // --- SISTEMA DEL MODAL DE IMÁGENES ---
+    let currentImages = [];
+    let currentIndex = 0;
+
+    function openModal(element) {
+        try {
+            currentImages = JSON.parse(element.getAttribute('data-images')) || [];
+        } catch (e) {
+            currentImages = [element.src];
+        }
+
+        currentIndex = 0;
+        const modal = document.getElementById('imageModal');
+
+        if (!modal) {
+            console.error("Error: No se encontró el contenedor HTML con id='imageModal'");
+            return;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Forzamos un reflow para que la transición de Tailwind funcione correctamente
+        void modal.offsetWidth;
+
+        modal.classList.remove('opacity-0');
+        modal.classList.add('opacity-100');
+
+        document.body.style.overflow = 'hidden'; // Detiene el scroll de la página de fondo
+        updateModalImage();
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('imageModal');
+        if (!modal) return;
+
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        document.body.style.overflow = '';
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function updateModalImage() {
+        const modalImg = document.getElementById('modalImage');
+        const counter = document.getElementById('modalCounter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        if (!modalImg || currentImages.length === 0) return;
+
+        modalImg.src = currentImages[currentIndex];
+
+        if (counter) {
+            counter.innerText = `Imagen ${currentIndex + 1} de ${currentImages.length}`;
+        }
+
+        // Control de visibilidad de las flechas de navegación
+        if (prevBtn && nextBtn) {
+            if (currentImages.length <= 1) {
+                prevBtn.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+            } else {
+                prevBtn.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+            }
+        }
+
+        // Renderizar miniaturas dinámicas si hay más de una foto
+        const thumbsContainer = document.getElementById('modalThumbnails');
+        if (thumbsContainer) {
+            thumbsContainer.innerHTML = '';
+            if (currentImages.length > 1) {
+                currentImages.forEach((img, index) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = img;
+                    thumb.className =
+                        `w-12 h-12 object-cover rounded-xl cursor-pointer transition border-2 ${index === currentIndex ? 'border-blue-500 scale-105' : 'border-transparent opacity-50'}`;
+                    thumb.onclick = () => {
+                        currentIndex = index;
+                        updateModalImage();
+                    };
+                    thumbsContainer.appendChild(thumb);
+                });
+            }
+        }
+    }
+
+    function changeImage(direction) {
+        if (currentImages.length === 0) return;
+        currentIndex += direction;
+        if (currentIndex >= currentImages.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = currentImages.length - 1;
+        updateModalImage();
+    }
+
+    // Navegación por teclado (Escape para cerrar, Flechas para navegar)
+    document.addEventListener('keydown', (e) => {
+        const modal = document.getElementById('imageModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'ArrowRight' && currentImages.length > 1) changeImage(1);
+            if (e.key === 'ArrowLeft' && currentImages.length > 1) changeImage(-1);
+        }
+    });
     </script>
+</body>
+
+</html>
 </body>
 
 </html>
