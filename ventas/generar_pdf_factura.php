@@ -22,18 +22,21 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 
 try {
-    // 4. Obtener datos de la cabecera + Información de agencias_envio (Se mantiene u.usuario por si acaso lo usas en otra lógica, pero se quitó del diseño)
+    // 4. Obtener datos de la cabecera (Se añade LEFT JOIN con control_ncf para obtener la fecha de vencimiento)
     $sqlFactura = "SELECT f.*, 
                            c.nombre + ' ' + c.apellido AS cliente_nombre, 
+                           c.rnc_cedula,
                            m.nombre_metodo, 
                            u.usuario AS nombre_cajero,
                            ae.agencia AS agencia_nombre,
-                           ae.costo AS costo_envio
+                           ae.costo AS costo_envio,
+                           n.fecha_vencimiento
                     FROM facturas f
                     INNER JOIN clientes c ON f.id_cliente = c.id_cliente
                     INNER JOIN metodos_pago m ON f.id_metodo_pago = m.id_metodo
                     INNER JOIN usuarios u ON f.id_usuario = u.id
                     LEFT JOIN agencias_envio ae ON f.id_envio = ae.id
+                    LEFT JOIN control_ncf n ON f.id_ncf = n.id_ncf
                     WHERE f.id_factura = ?";
                     
     $stmtF = $pdo->prepare($sqlFactura);
@@ -46,7 +49,11 @@ try {
 
     // 5. Obtener los artículos del detalle
     $sqlDetalle = "SELECT fd.cantidad, fd.precio_unitario, fd.subtotal_linea, 
-                           p.id_local, p.equipo_marca, p.equipo_modelo 
+                           p.id_local, p.equipo_marca, p.equipo_modelo,
+                           p.proc_marca, p.proc_familia, p.proc_modelo,
+                           p.memoria,                                   
+                           p.disco,                                     
+                           p.graficos                                   
                     FROM factura_detalle fd
                     INNER JOIN productos_informatica p ON fd.id_producto = p.id
                     WHERE fd.id_factura = ?";
@@ -62,16 +69,36 @@ try {
 $logoData = base64_encode(file_get_contents('https://dacansdr.com/img/logo.png'));
 $ruta_logo = 'data:image/png;base64,' . $logoData;
 
-// Sello de Garantía PNG cargado desde la carpeta local 'img'
 $garantiaData = base64_encode(file_get_contents('../img/garantia.png')); 
 $ruta_garantia = 'data:image/png;base64,' . $garantiaData;
 
-// Validar si la factura incluye envío o si es retiro físico
 $costo_envio = isset($factura['costo_envio']) ? (float)$factura['costo_envio'] : 0.00;
 $agencia_envio = !empty($factura['agencia_nombre']) ? htmlspecialchars($factura['agencia_nombre']) : 'Retiro en Tienda';
 
-// Sumar total neto más envío
 $total_final = (float)$factura['total_neto'] + $costo_envio;
+
+$rnc_cliente_html = '';
+if (!empty($factura['rnc_cedula'])) {
+    $rnc_cliente_html = '<br><b>RNC/Cédula:</b> ' . htmlspecialchars($factura['rnc_cedula']);
+}
+
+// Lógica para estructurar el NCF y sus leyendas fiscales una debajo de otra
+$ncf_html = '';
+if (!empty($factura['ncf'])) {
+    // 1. Línea del NCF
+    $ncf_html = '<b>NCF:</b> <span style="font-family: monospace; font-size: 12px; font-weight: bold; color: #1d4ed8;">' . htmlspecialchars($factura['ncf']) . '</span><br>';
+    
+    // 2. Línea de la Fecha de Vencimiento (Debajo de NCF)
+    if (!empty($factura['fecha_vencimiento'])) {
+        $fecha_vence_formateada = date('d/m/Y', strtotime($factura['fecha_vencimiento']));
+        $ncf_html .= '<span style="font-size: 9.5px; color: #475569; display: block; margin-top: 2px;">Vence: ' . $fecha_vence_formateada . '</span>';
+    }
+
+    // 3. Línea del Mensaje Fiscal (Debajo de la Fecha)
+    if (strpos($factura['ncf'], 'B01') === 0) {
+        $ncf_html .= '<span style="font-size: 9px; font-weight: bold; color: #0f172a; display: block; margin-top: 4px;">VÁLIDO PARA CRÉDITO FISCAL</span>';
+    }
+}
 
 // 6. Estructura HTML para el PDF
 $html = '
@@ -97,14 +124,12 @@ $html = '
         .details-table td { border-bottom: 1px solid #e2e8f0; padding: 8px; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        
-        /* Contenedor de bloque final */
+        .specs-text { font-size: 9.5px; color: #475569; font-weight: normal; margin-top: 3px; line-height: 1.2; }
         .summary-container { margin-top: 20px; width: 100%; }
         .warranty-box { background: #fdfdfd; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 15px; text-align: center; width: 240px; }
         .warranty-img { height: 38px; width: auto; display: block; margin: 0 auto 6px auto; }
         .warranty-title { font-size: 13px; font-weight: bold; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px; }
         .warranty-text { font-size: 9px; color: #64748b; margin-top: 2px; font-weight: 500; }
-        
         .totals-box { width: 100%; font-size: 11px; }
         .totals-box td { padding: 4px; }
         .border-top { border-top: 2px solid #0f172a; font-weight: bold; font-size: 13px; color: #059669; }
@@ -154,7 +179,10 @@ $html = '
                 </td>
                 <td class="info-header">
                     <strong style="font-size: 15px; color: #2563eb;">' . htmlspecialchars($factura['numero_factura']) . '</strong><br>
-                    <b>Fecha:</b> ' . date('d/m/Y h:i A', strtotime($factura['fecha_factura'])) . '<br>
+                    <div style="margin-top: 5px; margin-bottom: 5px; line-height: 1.3;">
+                        ' . $ncf_html . '
+                    </div>
+                    <b>Fecha Factura:</b> ' . date('d/m/Y h:i A', strtotime($factura['fecha_factura'])) . '<br>
                     <b>Estado:</b> ' . ($factura['estado_factura'] === 'PAGADA' ? '<span class="badge badge-pagada">PAGADA</span>' : '<span class="badge badge-anulada">ANULADA</span>') . '
                 </td>
             </tr>
@@ -164,7 +192,7 @@ $html = '
             <table>
                 <tr>
                     <td style="width: 55%; padding:0;">
-                        <b>Cliente:</b> ' . htmlspecialchars($factura['cliente_nombre']) . '<br>
+                        <b>Cliente:</b> ' . htmlspecialchars($factura['cliente_nombre']) . $rnc_cliente_html . '<br>
                         <b>Condición:</b> Contado
                     </td>
                     <td style="width: 45%; text-align: right; padding:0;">
@@ -188,10 +216,26 @@ $html = '
             <tbody>';
             
             foreach ($items as $item) {
+                $procesador_completo = trim($item['proc_marca'] . ' ' . $item['proc_familia'] . ' ' . $item['proc_modelo']);
+
+                $specs = [];
+                if (!empty($procesador_completo)) $specs[] = "Proc: " . $procesador_completo;
+                if (!empty($item['memoria']))        $specs[] = "RAM: " . $item['memoria'];
+                if (!empty($item['disco']))          $specs[] = "Disco: " . $item['disco'];
+                if (!empty($item['graficos']))       $specs[] = "Graf: " . $item['graficos'];
+                
+                $specs_html = '';
+                if (count($specs) > 0) {
+                    $specs_html = '<div class="specs-text">' . htmlspecialchars(implode(' | ', $specs)) . '</div>';
+                }
+
                 $html .= '
                 <tr>
                     <td style="font-family: monospace; font-weight: bold; color: #2563eb;">' . htmlspecialchars($item['id_local']) . '</td>
-                    <td style="font-weight: bold;">' . htmlspecialchars($item['equipo_marca'] . ' ' . $item['equipo_modelo']) . '</td>
+                    <td>
+                        <div style="font-weight: bold;">' . htmlspecialchars($item['equipo_marca'] . ' ' . $item['equipo_modelo']) . '</div>
+                        ' . $specs_html . ' 
+                    </td>
                     <td class="text-center">' . $item['cantidad'] . '</td>
                     <td class="text-right">RD$ ' . number_format($item['precio_unitario'], 2) . '</td>
                     <td class="text-right" style="font-weight: bold;">RD$ ' . number_format($item['subtotal_linea'], 2) . '</td>

@@ -130,7 +130,7 @@ $comentarios = json_decode(file_get_contents($json_file), true) ?: [];
             </a>
             <?php endif; ?>
 
-            <a href="https://wa.me/18096926631" target="_blank"
+            <a href="https://wa.me/18495886436" target="_blank"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition text-sm">
                 WhatsApp
             </a>

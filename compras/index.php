@@ -70,19 +70,29 @@ if (isset($_POST['migrar_producto_detallado'])) {
 
             $serie = trim($eq['serie'] ?? '') ?: 'PENDIENTE';
 
+            // Ejecución corregida mapeada de forma idéntica al INSERT INTO
             $stmtInsert->execute([
-                $id_local_evaluar, $serie,
-                trim($eq['proc_marca'] ?? ''), trim($eq['proc_familia'] ?? ''),
-                trim($eq['proc_generacion'] ?? ''), trim($eq['proc_modelo'] ?? ''),
-                trim($eq['numero_rastreo'] ?? ''),
-                trim($eq['graficos'] ?? ''), trim($eq['g_expandible'] ?? ''),
-                trim($eq['memoria'] ?? ''), trim($eq['disco'] ?? ''),
-                trim($eq['pantalla'] ?? ''), trim($eq['p_resolucion'] ?? ''),
-                trim($eq['touch'] ?? ''), (float)($eq['precio'] ?? 0),
-                'En camino', trim($eq['comenta'] ?? ''),
-                trim($eq['equipo_marca'] ?? ''), trim($eq['equipo_modelo'] ?? ''),
-                trim($eq['imagen_url'] ?? ''), trim($eq['imagenes_adicionales'] ?? ''),
-                $fecha_actual
+                $id_local_evaluar,                        // id_local
+                $serie,                                   // serie
+                trim($eq['proc_marca'] ?? ''),            // proc_marca
+                trim($eq['proc_familia'] ?? ''),          // proc_familia
+                trim($eq['proc_generacion'] ?? ''),       // proc_generacion
+                trim($eq['proc_modelo'] ?? ''),           // proc_modelo
+                trim($eq['graficos'] ?? ''),              // graficos (Eliminado 'numero_rastreo' que causaba el desfase)
+                trim($eq['g_expandible'] ?? ''),          // g_expandible
+                trim($eq['memoria'] ?? ''),               // memoria
+                trim($eq['disco'] ?? ''),                 // disco
+                trim($eq['pantalla'] ?? ''),              // pantalla
+                trim($eq['p_resolucion'] ?? ''),          // p_resolucion
+                trim($eq['touch'] ?? ''),                 // touch
+                (float)($eq['precio'] ?? 0),              // precio
+                'En camino',                              // estado
+                trim($eq['comenta'] ?? ''),               // comenta
+                trim($eq['equipo_marca'] ?? ''),          // equipo_marca
+                trim($eq['equipo_modelo'] ?? ''),         // equipo_modelo
+                trim($eq['imagen_url'] ?? ''),            // imagen_url
+                trim($eq['imagenes_adicionales'] ?? ''),  // imagenes_adicionales
+                $fecha_actual                             // created_at
             ]);
 
             if (isset($eq['id_original_compra'])) {
@@ -129,9 +139,7 @@ if (isset($_POST['migrar_producto_detallado'])) {
         $mail->CharSet    = 'UTF-8';
 
         // Destinatarios
-        $mail->setFrom('pfernandez@dacansdr.com', 'daniel@dacansdr.com', 'Sistema de Inventario');
-        
-        // 📥 REEMPLAZA AQUÍ EL CORREO QUE DEBE RECIBIR LAS ALERTAS
+        $mail->setFrom('pfernandez@dacansdr.com', 'Sistema de Inventario');
         $mail->addAddress('pfernandez@dacansdr.com'); 
 
         // Contenido del Correo
@@ -161,17 +169,15 @@ if (isset($_POST['migrar_producto_detallado'])) {
                 <p style='font-size: 11px; color: #666;'>Este es un correo automático generado por el sistema.</p>
             </div>";
 
-        $mail->send(); // Se envía el correo
+        $mail->send();
 
-        // Si todo sale bien (Base de datos + Logs + Email), guardamos los cambios de verdad
         $pdo->commit();
-        $mensaje_success = "¡Éxito! Se han registrado " . count($equipos) . " equipos, se crearon los logs y se envió la notificación por correo.";
+        $mensaje_success = "¡Éxito! Se han registrado " . count($equipos) . " equipos correctamente.";
         
         header("Location: index.php?success=" . urlencode($mensaje_success));
         exit;
 
     } catch (Exception $e) {
-        // Si falla la base de datos O falla el envío del correo, se cancela TODO (no se guardará nada roto)
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
@@ -365,16 +371,16 @@ try {
                             <th>Acciones</th>
                             <th>Item ID</th>
                             <th>ID Artículo</th>
+                            <th>Descripcion</th>
+                            <th>Status</th>
+                            <th>ID Courier</th>
                             <th>Dirección Usada</th>
                             <th>Numero Rastreo</th>
-                            <th>Descripcion</th>
                             <th>Cantidad</th>
                             <th>USD</th>
                             <th>DOP (Lote)</th>
                             <th>Costo Unitario</th>
                             <th>Precio Sugerido</th>
-                            <th>Status</th>
-
                         </tr>
                     </thead>
                     <tbody>
@@ -383,10 +389,11 @@ try {
                         <?php
                                 $id_art        = (int)($articulo['id'] ?? 0);
                                 $item_id       = trim($articulo['item_id'] ?? '');
+                                $id_currier    = trim($articulo['id_courier'] ?? '');
                                 $direccion     = htmlspecialchars($articulo['direccion_usada'] ?? 'N/A');
                                 $numero_rastreo_us = htmlspecialchars($articulo['numero_rastreo_us'] ?? 'N/A');
                                 $nombre_art    = $articulo['nombre_articulo'] ?? 'Artículo sin nombre';
-                                $cantidad      = (int)($articulo['cantidad_articulos'] ?? 0);
+                                $amount        = (int)($articulo['cantidad_articulos'] ?? 0);
                                 $costoDOP      = (float)($articulo['costo_dop'] ?? 0);
                                 $impuestos     = (float)($articulo['costo_impuestos'] ?? 0);
                                 $envio         = (float)($articulo['costo_envio'] ?? 0);
@@ -394,7 +401,7 @@ try {
                                 
                                 $porcentaje    = (float)($articulo['porcentaje_incremento'] ?? 80);
                                 $totalLote     = $costoDOP + $impuestos + $envio;
-                                $costoUnitario = $cantidad > 0 ? ($totalLote / $cantidad) : 0;
+                                $costoUnitario = $amount > 0 ? ($totalLote / $amount) : 0;
                                 $costoSugerido = $costoUnitario + ($costoUnitario * $porcentaje / 100);
                                 
                                 $estado        = htmlspecialchars($articulo['status_compra'] ?? 'N/A');
@@ -412,7 +419,7 @@ try {
 
                                     <button type="button" data-id="<?= $id_art ?>"
                                         data-nombre="<?= htmlspecialchars($nombre_art, ENT_QUOTES, 'UTF-8') ?>"
-                                        data-cantidad="<?= $cantidad ?>" data-sugerido="<?= $costoSugerido ?>"
+                                        data-cantidad="<?= $amount ?>" data-sugerido="<?= $costoSugerido ?>"
                                         class="btn-abrir-modal action-btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-600/10"
                                         title="Personalizar y enviar a inventario">
                                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
@@ -420,7 +427,7 @@ try {
                                 </div>
                             </td>
 
-                            <td class="font-black text-blue-700">#<?= $id_art ?></td>
+                            <td class="font-black text-blue-700"><?= $id_art ?></td>
                             <td class="font-mono text-slate-600 font-bold">
                                 <?php if (!empty($item_id)): ?>
                                 <a href="https://www.ebay.com/itm/<?= urlencode($item_id) ?>" target="_blank"
@@ -433,21 +440,36 @@ try {
                                 <span class="text-slate-400 font-normal">-</span>
                                 <?php endif; ?>
                             </td>
+
+                            <td class="font-bold text-slate-800"><?= htmlspecialchars($nombre_art) ?></td>
+
+                            <td>
+                                <select
+                                    class="bg-blue-100 text-blue-700 font-bold border border-blue-200 rounded px-3 py-2 w-full text-sm"
+                                    data-id="<?= $id_art ?>" onchange="actualizarStatus(this)">
+                                    <?php
+                                    $opciones_status = ['Ganado', 'Pagado', 'Enviado', 'Cancelado', 'Entregado', 'Aduanas', 'Listo para Recogida', 'Disponible'];
+                                    foreach ($opciones_status as $opcion):
+                                    ?>
+                                    <option value="<?= $opcion ?>" <?= ($estado == $opcion) ? 'selected' : '' ?>>
+                                        <?= $opcion ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+
+                            <td class="font-black text-blue-700"><?= $id_currier ?></td>
                             <td class="text-slate-700 font-medium"><?= $direccion ?></td>
                             <td class="font-bold text-slate-800"><?= htmlspecialchars($numero_rastreo_us) ?></td>
-                            <td class="font-bold text-slate-800"><?= htmlspecialchars($nombre_art) ?></td>
-                            <td class="font-bold text-center bg-slate-50 rounded-lg"><?= $cantidad ?></td>
+                            <td class="font-bold text-center bg-slate-50 rounded-lg"><?= $amount ?></td>
                             <td>$<?= number_format($costoUSD, 2) ?></td>
                             <td>RD$<?= number_format($costoDOP, 2) ?></td>
                             <td class="font-black text-cyan-700">RD$<?= number_format($costoUnitario, 2) ?></td>
                             <td class="font-black text-emerald-600">RD$<?= number_format($costoSugerido, 2) ?></td>
-                            <td><span class="status bg-blue-100 text-blue-700"><?= $estado ?></span></td>
-
                         </tr>
                         <?php endforeach; ?>
                         <?php else: ?>
                         <tr>
-                            <td colspan="11" class="text-center text-slate-400 py-6">No hay registros de compras
+                            <td colspan="13" class="text-center text-slate-400 py-6">No hay registros de compras
                                 disponibles.</td>
                         </tr>
                         <?php endif; ?>
@@ -492,10 +514,8 @@ try {
                             <td class="font-semibold"><?= htmlspecialchars($item['disco'] ?? '') ?></td>
                             <td class="font-black text-emerald-600">RD$<?= number_format((float)$item['precio'], 2) ?>
                             </td>
-                            <td>
-                                <span class="status bg-amber-100 text-amber-800">
-                                    <?= htmlspecialchars($item['estado'] ?? 'En camino') ?>
-                                </span>
+                            <td><span
+                                    class="status bg-amber-100 text-amber-800"><?= htmlspecialchars($item['estado'] ?? 'En camino') ?></span>
                             </td>
                             <td class="text-slate-400 select-none"><?= htmlspecialchars($item['created_at'] ?? '') ?>
                             </td>
@@ -511,12 +531,10 @@ try {
         class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div
             class="bg-white rounded-[32px] shadow-2xl border border-slate-100 max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden">
-
             <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-bolt"></i>
-                    </div>
+                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-lg"><i
+                            class="fa-solid fa-bolt"></i></div>
                     <div>
                         <h3 class="text-base font-black tracking-tight">Personalización con Espejo de Datos</h3>
                         <p class="text-xs text-slate-400">💡 Modifica la <strong>Unidad #1 (Maestra)</strong> para
@@ -529,20 +547,16 @@ try {
             </div>
 
             <form method="POST" class="flex flex-col flex-1 overflow-hidden">
-                <div id="contenedorEquiposDinamicos" class="p-5 space-y-6 overflow-y-auto flex-1 bg-slate-100">
-                </div>
-
+                <div id="contenedorEquiposDinamicos" class="p-5 space-y-6 overflow-y-auto flex-1 bg-slate-100"></div>
                 <div class="p-4 bg-white border-t border-slate-200 flex items-center justify-between shadow-lg">
-                    <p class="text-xs font-bold text-blue-600 flex items-center gap-1">
-                        <i class="fa-solid fa-truck-ramp-box"></i> Estatus por defecto: "En camino"
-                    </p>
+                    <p class="text-xs font-bold text-blue-600 flex items-center gap-1"><i
+                            class="fa-solid fa-truck-ramp-box"></i> Estatus por defecto: "En camino"</p>
                     <div class="flex items-center gap-2">
                         <button type="button" onclick="cerrarModal()"
                             class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-xs font-bold transition">Cancelar</button>
                         <button type="submit" name="migrar_producto_detallado"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-md transition">
-                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Guardar en Inventario
-                        </button>
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-md transition"><i
+                                class="fa-solid fa-cloud-arrow-up mr-1"></i> Guardar en Inventario</button>
                     </div>
                 </div>
             </form>
@@ -575,7 +589,6 @@ try {
             }
         });
 
-        // Delegación de eventos DataTables corregido para capturar fila actual
         $('#tablaCompras tbody').on('click', '.btn-abrir-modal', function() {
             const idCompra = $(this).attr('data-id');
             const nombreArticulo = $(this).attr('data-nombre');
@@ -585,11 +598,9 @@ try {
             prepararMigracionDetallada(idCompra, nombreArticulo, cantidad, precioSugerido);
         });
 
-        // EVENTO ESPEJO: Copia los valores modificados de la Unidad #1 al resto de elementos
         $(document).on('input change', '.clase-origen', function() {
             const campoDestino = $(this).attr('data-campo');
             const nuevoValor = $(this).val();
-
             $(`.clase-espejo[data-campo="${campoDestino}"]`).val(nuevoValor);
         });
     });
@@ -612,9 +623,9 @@ try {
             const idLocalAsignado = "DC-2026-" + correlativoTemporal;
             const inputClass = (i === 0) ? 'clase-origen' : 'clase-espejo';
 
+            // El HTML se estructuró para emparejarse en forma secuencial idéntica a tu backend en PHP
             const cardHtml = `
             <div class="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden border-l-4 ${i === 0 ? 'border-l-amber-500' : 'border-l-blue-600'} mb-4">
-                
                 <input type="hidden" name="equipo[${i}][id_original_compra]" value="${idCompra}">
 
                 <div class="bg-slate-950 text-slate-200 px-4 py-3 border-b border-slate-800 text-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
@@ -672,12 +683,17 @@ try {
                                 <input type="text" data-campo="proc_modelo" name="equipo[${i}][proc_modelo]" placeholder="Ej: 1165G7" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Memoria (RAM)</label>
-                                <input type="text" data-campo="memoria" name="equipo[${i}][memoria]" placeholder="Ej: 16GB" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800 font-bold">
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Gráficos</label>
+                                <select data-campo="graficos" name="equipo[${i}][graficos]" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
+                                    <option value="">Seleccione</option>
+                                    <option value="Integrada">Integrada</option>
+                                    <option value="APU Ajustable">APU Ajustable</option>
+                                    <option value="Dedicada">Dedicada</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Disco</label>
-                                <input type="text" data-campo="disco" name="equipo[${i}][disco]" placeholder="Ej: 512GB SSD" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800 font-bold">
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">G Expandible</label>
+                                <input type="text" data-campo="g_expandible" name="equipo[${i}][g_expandible]" placeholder="Ej: No" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
                             </div>
                         </div>
                     </div>
@@ -685,17 +701,12 @@ try {
                     <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
                         <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
                             <div>
-                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Gráficos</label>
-                                <select data-campo="graficos" name="equipo[${i}][graficos]" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
-                                    <option value="">Seleccione</option>
-                                    <option value="0">Integrada</option>
-                                    <option value="1">APU Ajustable</option>
-                                    <option value="2">Dedicada</option>
-                                </select>
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Memoria (RAM)</label>
+                                <input type="text" data-campo="memoria" name="equipo[${i}][memoria]" placeholder="Ej: 16GB" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800 font-bold">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">G Expandible</label>
-                                <input type="text" data-campo="g_expandible" name="equipo[${i}][g_expandible]" placeholder="Ej: No" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Disco</label>
+                                <input type="text" data-campo="disco" name="equipo[${i}][disco]" placeholder="Ej: 512GB SSD" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800 font-bold">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Pantalla</label>
@@ -709,8 +720,8 @@ try {
                                 <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Touch</label>
                                 <select data-campo="touch" name="equipo[${i}][touch]" class="${inputClass} w-full bg-white border border-slate-300 p-2 rounded-xl text-slate-800">
                                     <option value="">Seleccione</option>
-                                    <option value="1">Sí</option>
-                                    <option value="0">No</option>
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
                                 </select>
                             </div>
                             <div>
@@ -721,13 +732,35 @@ try {
                     </div>
                 </div>
             </div>
-        `;
+            `;
             contenedor.insertAdjacentHTML('beforeend', cardHtml);
         }
     }
 
     function cerrarModal() {
         document.getElementById('modalMigrarDetallado').classList.add('hidden');
+    }
+    </script>
+
+    <script>
+    function actualizarStatus(select) {
+        const id = select.dataset.id;
+        const status = select.value;
+
+        fetch('actualizar_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `id=${id}&status=${encodeURIComponent(status)}`
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => {
+                console.error(error);
+            });
     }
     </script>
 </body>

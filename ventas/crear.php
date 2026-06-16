@@ -9,12 +9,50 @@ if (!isset($_SESSION['admin_logueado'])) {
 
 require_once '../config/conexion.php'; 
 
+$id_cotizacion_get = isset($_GET['id_cotizacion']) ? (int)$_GET['id_cotizacion'] : null;
+
 $mensaje_success = "";
 $mensaje_error = "";
 $whatsapp_url = ""; // Almacenará el enlace dinámico de WhatsApp
 
 // ID del usuario cajero/vendedor desde la sesión
 $id_usuario_activo = $_SESSION['id_usuario'] ?? 1; 
+
+/* =========================================================
+   VARIABLES POR DEFECTO PARA EL FORMULARIO (CASO COTIZACIÓN)
+========================================================= */
+$cliente_precargado = "";
+$metodo_precargado = "";
+$productos_precargados_json = "[]"; // Se inyectará en tu JavaScript del carrito
+
+if ($id_cotizacion_get) {
+    try {
+        // 1. Obtener la cotización principal
+        $stmtCot = $pdo->prepare("SELECT id_cliente, id_metodo_pago, numero_cotizacion FROM cotizaciones WHERE id_cotizacion = ?");
+        $stmtCot->execute([$id_cotizacion_get]);
+        $cotizacion_base = $stmtCot->fetch(PDO::FETCH_ASSOC);
+
+        if ($cotizacion_base) {
+            $cliente_precargado = $cotizacion_base['id_cliente'];
+            $metodo_precargado  = $cotizacion_base['id_metodo_pago'];
+            
+            // 2. Extraer los productos de la sesión de cotizaciones si existe
+            if (isset($_SESSION['cotizacion']) && !empty($_SESSION['cotizacion'])) {
+                $carrito_temporal = [];
+                foreach ($_SESSION['cotizacion'] as $eq) {
+                    $carrito_temporal[] = [
+                        'id_producto' => $eq['id_local'], // O el ID real de tu tabla productos_informatica
+                        'cantidad'    => 1,
+                        'precio'      => $eq['precio']
+                    ];
+                }
+                $productos_precargados_json = json_encode($carrito_temporal);
+            }
+        }
+    } catch (Exception $e) {
+        $mensaje_error = "Error al recuperar datos de la cotización: " . $e->getMessage();
+    }
+}
 
 /* =========================================================
    1. PROCESAR EL GUARDADO DE LA VENTA (POST)
@@ -28,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
         $productos_carrito = $_POST['productos_carrito'] ?? []; 
         $comentarios = trim($_POST['comentarios'] ?? '');
         
+        // Capturar ID de cotización oculta en el formulario si venía de una
+        $id_cotizacion_post = !empty($_POST['id_cotizacion_origen']) ? (int)$_POST['id_cotizacion_origen'] : null;
+
         // Nuevos campos de entrega
         $tipo_entrega = $_POST['tipo_entrega'] ?? 'Tienda';
         $id_agencia_envio = !empty($_POST['id_agencia_envio']) ? (int)$_POST['id_agencia_envio'] : null;
@@ -37,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
             throw new Exception("El carrito de compras está vacío.");
         }
 
-        // Si es envío, obtener el costo real desde la base de datos para evitar alteraciones desde el cliente
+        // Si es envío, obtener el costo real desde la base de datos
         if ($tipo_entrega === 'Envio' && $id_agencia_envio !== null) {
             $stmtCosto = $pdo->prepare("SELECT costo, agencia FROM agencias_envio WHERE id = ?");
             $stmtCosto->execute([$id_agencia_envio]);
@@ -48,11 +89,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
             }
         }
 
-        // Generar un número de factura único correlativo básico
-        $prefijo = "FAC-" . date('Ymd');
-        $stmtCorrelativo = $pdo->query("SELECT COUNT(*) + 1 as siguiente FROM facturas WHERE numero_factura LIKE '$prefijo%'");
+      /* =========================================================
+           LÓGICA ASIGNACIÓN DE NCF (AUTOMÁTICO O MANUAL)
+        ========================================================= */
+        $ncf_generado = null;
+        $id_ncf_usado = null;
+        $requiere_ncf = $_POST['requiere_ncf_radio'] ?? 'no';
+        $ncf_manual = isset($_POST['ncf_manual']) ? strtoupper(trim($_POST['ncf_manual'])) : '';
+
+        if ($requiere_ncf === 'si') {
+            
+            if (!empty($ncf_manual)) {
+                // --- CASO 1: NCF MANUAL ---
+                // Validamos longitud básica de los NCF de la DGII (usualmente 11 caracteres: Ej B0100000001)
+                if (strlen($ncf_manual) < 9) { 
+                    throw new Exception("El NCF manual introducido parece inválido o muy corto.");
+                }
+                
+                $ncf_generado = $ncf_manual;
+                $id_ncf_usado = null; // No proviene de ningún talonario automático interno
+                
+                $comentarios .= " [NCF Manual: " . $ncf_generado . "]";
+
+            } else if (!empty($_POST['id_comprobante'])) {
+                // --- CASO 2: NCF AUTOMÁTICO DESDE BASE DE DATOS ---
+                $id_ncf_secuencia = (int)$_POST['id_comprobante'];
+
+                // Buscar el talonario bloqueándolo para evitar duplicados simultáneos (FOR UPDATE)
+              // Buscar el talonario bloqueándolo para evitar duplicados simultáneos con UPDLOCK y ROWLOCK
+$stmtNCF = $pdo->prepare("SELECT id_ncf, prefijo, secuencia_actual, secuencia_hasta FROM control_ncf WITH (UPDLOCK, ROWLOCK) WHERE id_ncf = ? AND estado = 1");
+                $stmtNCF->execute([$id_ncf_secuencia]);
+                $talonario = $stmtNCF->fetch(PDO::FETCH_ASSOC);
+
+                if (!$talonario) {
+                    throw new Exception("El talonario fiscal seleccionado no es válido o está inactivo.");
+                }
+
+                if ($talonario['secuencia_actual'] > $talonario['secuencia_hasta']) {
+                    throw new Exception("El talonario fiscal seleccionado se ha agotado. Contacte al administrador.");
+                }
+
+                // Armar el número de NCF estándar de la DGII
+                $ncf_generado = $talonario['prefijo'] . str_pad($talonario['secuencia_actual'], 8, '0', STR_PAD_LEFT);
+                $id_ncf_usado = $talonario['id_ncf'];
+
+                // Actualizar la secuencia en el control de NCF (+1)
+                $stmtUpdateNCF = $pdo->prepare("UPDATE control_ncf SET secuencia_actual = secuencia_actual + 1 WHERE id_ncf = ?");
+                $stmtUpdateNCF->execute([$id_ncf_usado]);
+                
+                $comentarios .= " [NCF: " . $ncf_generado . "]";
+            } else {
+                throw new Exception("Marcaste que requiere comprobante fiscal, pero no seleccionaste uno ni escribiste uno manual.");
+            }
+        }
+
+        // Generar el número de factura único de control interno
+        $prefijo_interno = "FAC-" . date('Ymd');
+        $stmtCorrelativo = $pdo->query("SELECT COUNT(*) + 1 as siguiente FROM facturas WHERE numero_factura LIKE '$prefijo_interno%'");
         $resCorrelativo = $stmtCorrelativo->fetch(PDO::FETCH_ASSOC);
-        $numero_factura = $prefijo . str_pad($resCorrelativo['siguiente'], 4, '0', STR_PAD_LEFT);
+        $numero_factura = $prefijo_interno . str_pad($resCorrelativo['siguiente'], 4, '0', STR_PAD_LEFT);
 
         $subtotal_factura = 0.00;
         $itbis_total_factura = 0.00;
@@ -100,11 +195,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
         // Sumar el costo de envío al total neto de la factura
         $total_neto_factura += $costo_envio;
 
-        $sqlInsertFactura = "INSERT INTO facturas (
-            numero_factura, id_cliente, id_metodo_pago, id_usuario, 
-            subtotal, itbis_total, descuento_total, total_neto, 
-            monto_pagado, devuelta, comentarios, estado_factura, fecha_factura
-        ) VALUES (?, ?, ?, ?, ?, ?, 0.00, ?, ?, ?, ?, 'PAGADA', GETDATE())";
+        // Se añaden los campos ncf y id_ncf en el INSERT de la factura (Asegúrate de que existan en tu tabla 'facturas')
+     $sqlInsertFactura = "INSERT INTO facturas (
+    numero_factura, id_cliente, id_metodo_pago, id_usuario, 
+    subtotal, itbis_total, descuento_total, total_neto, 
+    monto_pagado, devuelta, comentarios, estado_factura, fecha_factura,
+    ncf, id_ncf  -- <--- ESTO DEBE COINCIDIR CON LOS NOMBRES REALES DE LA TABLA
+) VALUES (?, ?, ?, ?, ?, ?, 0.00, ?, ?, ?, ?, 'PAGADA', GETDATE(), ?, ?)";
 
         $monto_pagado = (float)($_POST['monto_pagado'] ?? $total_neto_factura);
         $devuelta = $monto_pagado - $total_neto_factura;
@@ -113,13 +210,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
         $stmtFactura->execute([
             $numero_factura, $id_cliente, $id_metodo_pago, $id_usuario_activo,
             $subtotal_factura, $itbis_total_factura, $total_neto_factura,
-            $monto_pagado, $devuelta, $comentarios
+            $monto_pagado, $devuelta, $comentarios, $ncf_generado, $id_ncf_usado
         ]);
 
         $id_factura_generada = $pdo->lastInsertId();
 
         $sqlInsertDetalle = "INSERT INTO factura_detalle (id_factura, id_producto, cantidad, precio_unitario, itbis_aplicado, descuento_aplicado, subtotal_linea) VALUES (?, ?, ?, ?, ?, 0.00, ?)";
         $stmtDetalle = $pdo->prepare($sqlInsertDetalle);
+
 
         $sqlUpdateProducto = "UPDATE productos_informatica SET estado = 'Vendida', vendida_at = GETDATE() WHERE id = ?";
         $stmtUpdateProd = $pdo->prepare($sqlUpdateProducto);
@@ -132,53 +230,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['procesar_venta'])) {
             $stmtUpdateProd->execute([$det['id_producto']]);
         }
 
-        // --- EXTRACCIÓN DE DATOS DE CLIENTE PARA WHATSAPP ---
-        $stmtInfoCliente = $pdo->prepare("SELECT nombre, telefono FROM clientes WHERE id_cliente = ?");
+        // --- EXTRACCIÓN DE DATOS DE CLIENTE PARA WHATSAPP Y CORREO ---
+        $stmtInfoCliente = $pdo->prepare("SELECT nombre, telefono, email FROM clientes WHERE id_cliente = ?");
         $stmtInfoCliente->execute([$id_cliente]);
         $infoCliente = $stmtInfoCliente->fetch(PDO::FETCH_ASSOC);
 
         $pdo->commit();
 
-        // Construcción automática del link de WhatsApp si el cliente posee un número registrado
+        /* =========================================================
+            ENVÍO AUTOMÁTICO DE FACTURA POR EMAIL
+        ========================================================= */
+        if ($infoCliente && !empty($infoCliente['email'])) {
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'mail.dacansdr.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'facturas@dacansdr.com';
+                $mail->Password   = 'TuContraseñaSeguraAqui'; 
+                $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                $mail->Port       = 465;
+                $mail->CharSet    = 'UTF-8';
+
+                $mail->setFrom('facturas@dacansdr.com', 'DACANS Computers');
+                $mail->addAddress($infoCliente['email'], $infoCliente['nombre']);
+
+                $url_pdf = "https://dacansdr.com/admin/generar_pdf.php?id=" . $id_factura_generada;
+                $pdf_content = file_get_contents($url_pdf);
+                
+                if ($pdf_content !== false) {
+                    $mail->addStringAttachment($pdf_content, "Factura_" . $numero_factura . ".pdf");
+                }
+
+                $mail->isHTML(true);
+                $mail->Subject = 'Tu comprobante de compra ' . $numero_factura . ' - DACANS Computers';
+                
+                // Texto informativo extra si tiene comprobante fiscal asignado
+                $texto_ncf_email = !empty($ncf_generado) ? "<tr><td style='padding: 8px; font-weight: bold;'>Comprobante Fiscal (NCF):</td><td style='padding: 8px; font-weight: bold; color: #1d4ed8;'>".$ncf_generado."</td></tr>" : "";
+
+                $mail->Body    = "
+                    <div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;'>
+                        <h2 style='color: #2563eb;'>¡Gracias por tu compra, " . htmlspecialchars($infoCliente['nombre']) . "!</h2>
+                        <p>Nos complace adjuntar a este correo la factura oficial correspondiente a tu reciente adquisición en <strong>DACANS Computers</strong>.</p>
+                        <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
+                            <tr>
+                                <td style='padding: 8px; font-weight: bold;'>Número de Factura:</td>
+                                <td style='padding: 8px;'>" . $numero_factura . "</td>
+                            </tr>
+                            " . $texto_ncf_email . "
+                            <tr>
+                                <td style='padding: 8px; font-weight: bold;'>Monto Total:</td>
+                                <td style='padding: 8px; color: #059669; font-weight: bold;'>RD$ " . number_format($total_neto_factura, 2) . "</td>
+                            </tr>
+                        </table>
+                        <p style='font-size: 12px; color: #64748b;'>Por favor, descarga el archivo PDF adjunto para visualizar los detalles de la garantía de 1 año y especificaciones técnicas de tus equipos.</p>
+                        <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;'>
+                        <p style='font-size: 11px; color: #94a3b8; text-align: center;'>DACANS Computers | Santo Domingo, República Dominicana.</p>
+                    </div>";
+
+                $mail->send();
+                $mensaje_success = "¡Venta procesada con éxito! Factura creada: <strong>$numero_factura</strong>" . (!empty($ncf_generado) ? " (NCF: $ncf_generado)" : "") . " y enviada automáticamente al cliente.";
+            } catch (Exception $e) {
+                $mensaje_success = "¡Venta procesada con éxito! Factura creada: <strong>$numero_factura</strong>. <span style='color:#b91c1c;'>(Pero no se pudo enviar el correo: {$mail->ErrorInfo})</span>";
+            }
+        } else {
+            $mensaje_success = "¡Venta procesada con éxito! Factura creada: <strong>$numero_factura</strong>." . (!empty($ncf_generado) ? " (NCF: $ncf_generado)" : "") . " (El cliente no tiene un correo electrónico registrado).";
+        }
+
+        // Construcción automática del link de WhatsApp
         if ($infoCliente && !empty($infoCliente['telefono'])) {
-            // Limpiar caracteres del teléfono (deja solo números)
             $telefono_limpio = preg_replace('/[^0-9]/', '', $infoCliente['telefono']);
-            
-            // Si no tiene el código de área del país (ej: República Dominicana +1), puedes anteponerlo aquí
             if (strlen($telefono_limpio) === 10) {
                 $telefono_limpio = "1" . $telefono_limpio; 
             }
-
-            // Reemplazar espacios del nombre por guiones bajos para que viaje limpio en la URL
-$nombre_url = str_replace(' ', '_', $infoCliente['nombre']);
-
-$texto_mensaje = "¡Hola " . htmlspecialchars($infoCliente['nombre']) . "! Gracias por elegir a DACANS Computers. 💻 Nos encantaría conocer tu experiencia con nosotros y el rendimiento de tu nuevo equipo. Nos ayudas muchísimo dejando tu breve calificación aquí: https://dacansdr.com/valorar.php?cliente=" . $nombre_url . " ¡Disfruta tu compra!";
-
-$whatsapp_url = "https://api.whatsapp.com/send?phone=" . $telefono_limpio . "&text=" . urlencode($texto_mensaje);
+            $nombre_url = str_replace(' ', '_', $infoCliente['nombre']);
+            $texto_mensaje = "¡Hola " . htmlspecialchars($infoCliente['nombre']) . "! Gracias por elegir a DACANS Computers. 💻 Nos encantaría conocer tu experiencia con nosotros y el rendimiento de tu nuevo equipo. Nos ayudas muchísimo dejando tu breve calificación aquí: https://dacansdr.com/valorar.php?cliente=" . $nombre_url . " ¡Disfruta tu compra!";
+            $whatsapp_url = "https://api.whatsapp.com/send?phone=" . $telefono_limpio . "&text=" . urlencode($texto_mensaje);
         }
 
-        $mensaje_success = "¡Venta procesada con éxito! Factura creada: <strong>$numero_factura</strong>";
-  
-
     } catch (Exception $e) {
-        $pdo->rollBack();
-        $mensaje_error = "Error al registrar la venta: " . $e->getMessage();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $mensaje_error = "Error al procesar la venta: " . $e->getMessage();
     }
-}
+} 
 
 /* =========================================================
-   2. RECOPILAR INFORMACIÓN INICIAL
+   2. RECOPILAR INFORMACIÓN INICIAL (GET)
 ========================================================= */
 try {
-    $clientes = $pdo->query("SELECT id_cliente, nombre + ' ' + apellido AS cliente_nombre, rnc_cedula FROM clientes WHERE estado = 1 ORDER BY nombre ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $clientes = $pdo->query("SELECT id_cliente, CONCAT(nombre, ' ', apellido) AS cliente_nombre, rnc_cedula FROM clientes WHERE estado = 1 ORDER BY nombre ASC")->fetchAll(PDO::FETCH_ASSOC);
+    
     $metodos_pago = $pdo->query("SELECT id_metodo, nombre_metodo FROM metodos_pago WHERE estado = 1")->fetchAll(PDO::FETCH_ASSOC);
+    
     $productos = $pdo->query("SELECT id, id_local, equipo_marca, equipo_modelo, precio FROM productos_informatica WHERE estado != 'Vendida' ORDER BY id_local DESC")->fetchAll(PDO::FETCH_ASSOC);
+    
     $agencias = $pdo->query("SELECT id, provincia, ciudad, agencia, costo FROM agencias_envio ORDER BY agencia ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Traer los talonarios NCF autorizados y activos
+    $comprobantes_disponibles = $pdo->query("SELECT id_ncf, tipo_comprobante, prefijo FROM control_ncf WHERE estado = 1 AND secuencia_actual <= secuencia_hasta")->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
-    die("Error al cargar componentes: " . $e->getMessage());
+    die("Error crítico al cargar componentes de la interfaz: " . $e->getMessage());
 }
 ?>
-
 <?php if (!empty($mensaje_success)): ?>
 <div class="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl my-4 shadow-sm">
     <div class="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -393,7 +550,10 @@ try {
                             <option value="<?= $m['id_metodo'] ?>"><?= htmlspecialchars($m['nombre_metodo']) ?></option>
                             <?php endforeach; ?>
                         </select>
+
                     </div>
+
+
 
                     <div class="border-t border-slate-100 pt-3 space-y-3">
                         <div>
@@ -406,6 +566,69 @@ try {
                             </select>
                         </div>
 
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-2">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="bg-blue-100 text-blue-600 w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-700 block">¿Requiere Comprobante
+                                        Fiscal?</span>
+                                    <span class="text-[10px] text-slate-400 block leading-tight">Selecciona una opción
+                                        para continuar</span>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4 pt-1 pl-11">
+                                <label
+                                    class="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                                    <input type="radio" name="requiere_ncf_radio" value="no" checked
+                                        class="w-4 h-4 accent-blue-600"> No
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                                    <input type="radio" name="requiere_ncf_radio" id="rdRequiereNCF_si" value="si"
+                                        class="w-4 h-4 accent-blue-600"> Sí, registrar NCF
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="contenedorComprobante"
+                            class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Tipo de
+                                    Comprobante Fiscal (Automático)</label>
+                                <select name="id_comprobante" id="selectTipoComprobante"
+                                    class="w-full bg-white border border-slate-200 p-2.5 rounded-xl font-medium text-slate-800 text-xs focus:outline-none focus:border-blue-500">
+                                    <option value="">-- Seleccione de la Base de Datos --</option>
+                                    <?php foreach ($comprobantes_disponibles as $comp): ?>
+                                    <option value="<?= $comp['id_ncf'] ?>">
+                                        <?= htmlspecialchars($comp['tipo_comprobante']) ?> (Prefijo:
+                                        <?= htmlspecialchars($comp['prefijo']) ?>)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="flex items-center my-2 text-[10px] font-bold uppercase text-slate-400">
+                                <hr class="flex-1 border-slate-200">
+                                <span class="px-2">O introduce uno manual</span>
+                                <hr class="flex-1 border-slate-200">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">NCF Manual
+                                    (Escribe el código completo)</label>
+                                <input type="text" name="ncf_manual" id="txtNcfManual" placeholder="Ej: B0100000005"
+                                    maxlength="11"
+                                    class="w-full bg-white border border-slate-200 p-2.5 rounded-xl font-mono font-bold text-xs uppercase text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-500">
+                                <span class="text-[9px] text-slate-400 block mt-1 leading-tight">Si escribes un NCF
+                                    aquí, el sistema ignorará la selección automática de arriba.</span>
+                            </div>
+
+                        </div>
                         <div id="contenedorAgencia" class="hidden">
                             <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Agencia / Destino
                                 de Envío</label>
@@ -667,22 +890,22 @@ try {
             $('#filaVacia').hide();
 
             const filaHtml = `
-            <tr class="fila-producto" id="fila_${indiceCarrito}">
-                <td class="p-4 font-mono font-bold text-blue-600">
-                    ${idLocal}
-                    <input type="hidden" class="prod-id-clase" name="productos_carrito[${indiceCarrito}][id_producto]" value="${idProd}" />
-                </td>
-                <td class="p-4 font-semibold text-slate-800">${marca} ${modelo}</td>
-                <td class="p-4 text-center">
-                    <input type="number" name="productos_carrito[${indiceCarrito}][cantidad]" value="1" min="1" readonly class="w-12 bg-slate-50 text-center font-bold text-xs p-1 rounded border border-slate-200 focus:outline-none" />
-                </td>
-                <td class="p-4 text-right font-bold text-slate-700">RD$ ${precio.toFixed(2)}</td>
-                <td class="p-4 text-right font-black text-slate-900 line-subtotal" data-valor="${precio}">RD$ ${precio.toFixed(2)}</td>
-                <td class="p-4 text-center">
-                    <button type="button" onclick="eliminarFila(${indiceCarrito})" class="text-rose-500 hover:text-rose-700 text-sm transition"><i class="fa-solid fa-trash-can"></i></button>
-                </td>
-            </tr>
-        `;
+        <tr class="fila-producto" id="fila_${indiceCarrito}">
+            <td class="p-4 font-mono font-bold text-blue-600">
+                ${idLocal}
+                <input type="hidden" class="prod-id-clase" name="productos_carrito[${indiceCarrito}][id_producto]" value="${idProd}" />
+            </td>
+            <td class="p-4 font-semibold text-slate-800">${marca} ${modelo}</td>
+            <td class="p-4 text-center">
+                <input type="number" name="productos_carrito[${indiceCarrito}][cantidad]" value="1" min="1" readonly class="w-12 bg-slate-50 text-center font-bold text-xs p-1 rounded border border-slate-200 focus:outline-none" />
+            </td>
+            <td class="p-4 text-right font-bold text-slate-700">RD$ ${precio.toFixed(2)}</td>
+            <td class="p-4 text-right font-black text-slate-900 line-subtotal" data-valor="${precio}">RD$ ${precio.toFixed(2)}</td>
+            <td class="p-4 text-center">
+                <button type="button" onclick="eliminarFila(${indiceCarrito})" class="text-rose-500 hover:text-rose-700 text-sm transition"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+        </tr>
+    `;
 
             $('#tbodyCarrito').append(filaHtml);
             indiceCarrito++;
@@ -696,6 +919,36 @@ try {
         $('#txtMontoPagado').on('input', function() {
             calcularCambio();
         });
+
+        /* =========================================================
+           NUEVO: CARGA AUTOMÁTICA DESDE LA COTIZACIÓN DE ORIGEN
+        ========================================================= */
+        function cargarProductosCotizados() {
+            // Leemos la variable JSON que genera PHP de forma segura
+            const productosCotizados = <?= $productos_precargados_json ?? '[]' ?>;
+
+            if (productosCotizados.length > 0) {
+                productosCotizados.forEach(function(item) {
+                    // Buscamos la opción correspondiente en el select de productos
+                    let optionProducto = $(
+                        `#selectProducto option[data-idlocal="${item.id_producto}"]`);
+
+                    // Si no se encuentra por id_local, probamos buscar por el value primario (id)
+                    if (optionProducto.length === 0) {
+                        optionProducto = $(`#selectProducto option[value="${item.id_producto}"]`);
+                    }
+
+                    if (optionProducto.length > 0) {
+                        // Marcamos la opción encontrada y forzamos el click del botón de añadir
+                        $('#selectProducto').val(optionProducto.val());
+                        $('#btnAgregarCarrito').click();
+                    }
+                });
+            }
+        }
+
+        // Ejecutar la precarga al finalizar de montar el DOM
+        cargarProductosCotizados();
     });
 
     function eliminarFila(idFila) {
@@ -763,6 +1016,7 @@ try {
     }
 
     function calcularCambio() {
+
         const totalNetoTexto = $('#lblTotalNeto').text().replace(/,/g, '');
         const totalNeto = parseFloat(totalNetoTexto) || 0;
         const montoPagado = parseFloat($('#txtMontoPagado').val()) || 0;
@@ -775,6 +1029,51 @@ try {
             maximumFractionDigits: 2
         }));
     }
+    </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const radiosNCF = document.querySelectorAll('input[name="requiere_ncf_radio"]');
+        const contenedorComprobante = document.getElementById("contenedorComprobante");
+        const selectTipoComprobante = document.getElementById("selectTipoComprobante");
+        const txtNcfManual = document.getElementById("txtNcfManual");
+        const formVenta = document.getElementById("formVenta");
+
+        // Forzar mayúsculas en el NCF manual mientras se escribe
+        txtNcfManual.addEventListener("input", function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        radiosNCF.forEach(radio => {
+            radio.addEventListener("change", function() {
+                if (this.value === "si") {
+                    contenedorComprobante.classList.remove("hidden");
+                } else {
+                    contenedorComprobante.classList.add("hidden");
+                    // Limpiar valores si se marca "No"
+                    selectTipoComprobante.value = "";
+                    txtNcfManual.value = "";
+                }
+            });
+        });
+
+        // Validación antes de enviar el formulario
+        formVenta.addEventListener("submit", function(e) {
+            const requiereNCF = document.querySelector('input[name="requiere_ncf_radio"]:checked')
+                .value;
+
+            if (requiereNCF === "si") {
+                // Validar que al menos uno de los dos esté lleno
+                if (selectTipoComprobante.value === "" && txtNcfManual.value.trim() === "") {
+                    e.preventDefault(); // Detener el envío
+                    alert(
+                        "Por favor, seleccione un tipo de NCF automático o introduzca un NCF manual."
+                    );
+                    selectTipoComprobante.focus();
+                }
+            }
+        });
+    });
     </script>
 </body>
 

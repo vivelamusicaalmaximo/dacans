@@ -114,78 +114,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Importar Excel</title>
+    <title>Importar Excel</title>
 
-<link rel="shortcut icon" href="/img/favicon.ico">
+    <link rel="shortcut icon" href="/img/favicon.ico">
 
-<script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-<style>
+    <style>
+    body {
 
-body{
+        background:
+            radial-gradient(circle at top left, rgba(37, 99, 235, .08), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(14, 165, 233, .08), transparent 30%),
+            #f8fafc;
+    }
 
-    background:
-    radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(14,165,233,.08), transparent 30%),
-    #f8fafc;
-}
+    .card {
 
-.card{
+        background: white;
 
-    background:white;
+        border-radius: 32px;
 
-    border-radius:32px;
+        border: 1px solid #e2e8f0;
 
-    border:1px solid #e2e8f0;
-
-    box-shadow:
-        0 10px 30px rgba(15,23,42,.05),
-        0 2px 10px rgba(15,23,42,.03);
-}
-
-</style>
+        box-shadow:
+            0 10px 30px rgba(15, 23, 42, .05),
+            0 2px 10px rgba(15, 23, 42, .03);
+    }
+    </style>
 
 </head>
 
 <body class="min-h-screen flex items-center justify-center p-6">
 
-<div class="w-full max-w-2xl">
+    <div class="w-full max-w-2xl">
 
-    <div class="card p-10">
+        <div class="card p-10">
 
-        <!-- HEADER -->
+            <!-- HEADER -->
 
-        <div class="text-center mb-10">
+            <div class="text-center mb-10">
 
-            <div class="w-24 h-24 mx-auto rounded-3xl
+                <div class="w-24 h-24 mx-auto rounded-3xl
             bg-green-100 text-green-700
             flex items-center justify-center mb-5">
 
-                <i class="fa-solid fa-file-excel text-5xl"></i>
+                    <i class="fa-solid fa-file-excel text-5xl"></i>
+
+                </div>
+
+                <h1 class="text-4xl font-black text-slate-900">
+                    Importar Excel
+                </h1>
+
+                <p class="text-slate-500 mt-3">
+                    Carga un archivo Excel para importar artículos automáticamente
+                </p>
 
             </div>
 
-            <h1 class="text-4xl font-black text-slate-900">
-                Importar Excel
-            </h1>
+            <!-- ALERTA -->
 
-            <p class="text-slate-500 mt-3">
-                Carga un archivo Excel para importar artículos automáticamente
-            </p>
-
-        </div>
-
-        <!-- ALERTA -->
-
-        <?php if (!empty($mensaje)): ?>
+            <?php if (!empty($mensaje)): ?>
 
             <div class="mb-6 p-5 rounded-2xl
             bg-blue-100 text-blue-800 font-bold">
@@ -194,23 +190,17 @@ body{
 
             </div>
 
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <!-- FORM -->
+            <!-- FORM -->
 
-        <form method="POST"
-        enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data">
 
-            <div class="border-2 border-dashed
+                <div class="border-2 border-dashed
             border-slate-300 rounded-3xl
             p-10 text-center bg-slate-50">
 
-                <input
-                    type="file"
-                    name="excel"
-                    accept=".xlsx,.xls"
-                    required
-                    class="block w-full text-sm text-slate-600
+                    <input type="file" name="excel" accept=".xlsx,.xls" required class="block w-full text-sm text-slate-600
                     file:mr-4
                     file:py-4
                     file:px-6
@@ -221,69 +211,68 @@ body{
                     file:font-black
                     hover:file:bg-green-700">
 
-                <p class="text-slate-400 text-sm mt-5">
+                    <p class="text-slate-400 text-sm mt-5">
 
-                    Formatos permitidos:
-                    XLSX / XLS
+                        Formatos permitidos:
+                        XLSX / XLS
 
-                </p>
+                    </p>
 
-            </div>
+                </div>
 
-            <!-- BOTONES -->
+                <!-- BOTONES -->
 
-            <div class="flex flex-wrap gap-4 mt-8">
+                <div class="flex flex-wrap gap-4 mt-8">
 
-                <button
-                    type="submit"
-                    class="flex-1 bg-green-600 hover:bg-green-700
+                    <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700
                     text-white py-5 rounded-2xl
                     font-black text-lg shadow-lg transition">
 
-                    <i class="fa-solid fa-upload mr-2"></i>
+                        <i class="fa-solid fa-upload mr-2"></i>
 
-                    Importar Excel
+                        Importar Excel
 
-                </button>
+                    </button>
 
-                <a href="index.php"
-                class="bg-slate-900 hover:bg-black
+                    <a href="index.php" class="bg-slate-900 hover:bg-black
                 text-white px-8 py-5 rounded-2xl
                 font-black shadow-lg transition">
 
-                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                        <i class="fa-solid fa-arrow-left mr-2"></i>
 
-                    Volver
+                        Volver
 
-                </a>
+                    </a>
 
-            </div>
+                </div>
 
-        </form>
+            </form>
 
-        <!-- EJEMPLO -->
+            <!-- EJEMPLO -->
 
-        <div class="mt-10 bg-slate-50 rounded-3xl p-6 border border-slate-200">
+            <div class="mt-10 bg-slate-50 rounded-3xl p-6 border border-slate-200">
 
-            <h3 class="font-black text-slate-900 mb-4">
-                Orden de columnas en Excel
-            </h3>
+                <h3 class="font-black text-slate-900 mb-4">
+                    Orden de columnas en Excel
+                </h3>
 
-            <div class="text-sm text-slate-600 leading-8">
+                <div class="text-sm text-slate-600 leading-8">
 
-                1. item_id<br>
-                2. nombre_articulo<br>
-                3. cantidad_articulos<br>
-                4. costo_usd<br>
-                5. costo_dop<br>
-                6. costo_impuestos<br>
-                7. costo_envio<br>
-                8. numero_rastreo_us<br>
-                9. status_compra<br>
-                10. direccion_usada<br>
-                11. id_courier<br>
-                12. costo_unitario<br>
-                13. porcentaje_incremento
+                    1. item_id<br>
+                    2. nombre_articulo<br>
+                    3. cantidad_articulos<br>
+                    4. costo_usd<br>
+                    5. costo_dop<br>
+                    6. costo_impuestos<br>
+                    7. costo_envio<br>
+                    8. numero_rastreo_us<br>
+                    9. status_compra<br>
+                    10. direccion_usada<br>
+                    11. id_courier<br>
+                    12. costo_unitario<br>
+                    13. porcentaje_incremento
+
+                </div>
 
             </div>
 
@@ -291,7 +280,6 @@ body{
 
     </div>
 
-</div>
-
 </body>
+
 </html>

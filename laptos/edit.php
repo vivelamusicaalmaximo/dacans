@@ -228,7 +228,7 @@ if (isset($_POST['actualizar'])) {
                 WHERE id_local = ?";
 
         $stmt = $pdo->prepare($sql);
-        $precio_limpio = !empty($_POST['precio']) ? (float)str_replace(',', '', $_POST['precio']) : 0;
+      $precio_limpio = !empty($_POST['precio']) ? (float)str_replace(',', '', $_POST['precio']) : 0;
 
         $stmt->execute([
             !empty($_POST['serie']) ? trim($_POST['serie']) : null,
@@ -308,6 +308,7 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Editar Equipo</title>
@@ -316,6 +317,7 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
     <link rel="shortcut icon" href="/img/favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+
 <body class="bg-slate-100 min-h-screen p-4 sm:p-8">
 
     <div class="max-w-5xl mx-auto">
@@ -326,28 +328,33 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
                 <p class="text-slate-500 text-sm mt-1">ID: <?= $e['id_local'] ?></p>
             </div>
             <div class="flex gap-3">
-                <a href="index.php" class="bg-slate-200 hover:bg-slate-300 transition px-5 py-3 rounded-2xl font-bold text-sm">
+                <a href="index.php"
+                    class="bg-slate-200 hover:bg-slate-300 transition px-5 py-3 rounded-2xl font-bold text-sm">
                     <i class="fa-solid fa-arrow-left mr-2"></i> Volver
                 </a>
-                <a href="eliminar.php?id=<?= urlencode($e['id_local']) ?>" onclick="return confirm('¿Eliminar este equipo?')" class="bg-red-500 hover:bg-red-600 transition text-white px-5 py-3 rounded-2xl font-bold text-sm">
+                <a href="eliminar.php?id=<?= urlencode($e['id_local']) ?>"
+                    onclick="return confirm('¿Eliminar este equipo?')"
+                    class="bg-red-500 hover:bg-red-600 transition text-white px-5 py-3 rounded-2xl font-bold text-sm">
                     <i class="fa-solid fa-trash mr-2"></i> Eliminar
                 </a>
             </div>
         </div>
 
         <?php if ($mensaje): ?>
-            <div class="bg-green-600 text-white p-4 rounded-2xl mb-6 font-bold"><?= $mensaje ?></div>
+        <div class="bg-green-600 text-white p-4 rounded-2xl mb-6 font-bold"><?= $mensaje ?></div>
         <?php endif; ?>
 
         <?php if ($error): ?>
-            <div class="bg-red-500 text-white p-4 rounded-2xl mb-6 font-bold"><?= $error ?></div>
+        <div class="bg-red-500 text-white p-4 rounded-2xl mb-6 font-bold"><?= $error ?></div>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data" class="bg-white rounded-[2rem] shadow-xl p-5 sm:p-8 border border-slate-200">
+        <form method="POST" enctype="multipart/form-data"
+            class="bg-white rounded-[2rem] shadow-xl p-5 sm:p-8 border border-slate-200">
 
             <input type="hidden" id="vendida_at" name="vendida_at" value="<?= $e['vendida_at'] ?? '' ?>">
 
-            <button type="submit" name="actualizar" class="w-full bg-blue-900 hover:bg-black transition text-white py-4 rounded-2xl font-black text-lg shadow-xl mb-8">
+            <button type="submit" name="actualizar"
+                class="w-full bg-blue-900 hover:bg-black transition text-white py-4 rounded-2xl font-black text-lg shadow-xl mb-8">
                 <i class="fa-solid fa-floppy-disk mr-2"></i> GUARDAR CAMBIOS
             </button>
 
@@ -356,76 +363,90 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">ID Local</label>
-                    <input type="text" value="<?= $e['id_local'] ?>" readonly class="w-full p-3 rounded-2xl bg-slate-100 border border-slate-200 font-black text-blue-700">
+                    <input type="text" value="<?= $e['id_local'] ?>" readonly
+                        class="w-full p-3 rounded-2xl bg-slate-100 border border-slate-200 font-black text-blue-700">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Serie</label>
-                    <input type="text" name="serie" value="<?= $e['serie'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="serie" value="<?= $e['serie'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Marca</label>
-                    <input type="text" name="equipo_marca" value="<?= $e['equipo_marca'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="equipo_marca" value="<?= $e['equipo_marca'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Modelo</label>
-                    <input type="text" name="equipo_modelo" value="<?= $e['equipo_modelo'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="equipo_modelo" value="<?= $e['equipo_modelo'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Marca CPU</label>
-                    <input type="text" name="proc_marca" value="<?= $e['proc_marca'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="proc_marca" value="<?= $e['proc_marca'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Familia CPU</label>
-                    <input type="text" name="proc_familia" value="<?= $e['proc_familia'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="proc_familia" value="<?= $e['proc_familia'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Generación</label>
-                    <input type="text" name="proc_generacion" value="<?= $e['proc_generacion'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="proc_generacion" value="<?= $e['proc_generacion'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Modelo CPU</label>
-                    <input type="text" name="proc_modelo" value="<?= $e['proc_modelo'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="proc_modelo" value="<?= $e['proc_modelo'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Gráficos</label>
-                    <input type="text" name="graficos" value="<?= $e['graficos'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="graficos" value="<?= $e['graficos'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Tipo de GPU</label>
                     <select name="g_expandible" class="w-full p-3 rounded-2xl border border-slate-200">
                         <option value="0" <?= (($e['g_expandible'] ?? '') == 0) ? 'selected' : '' ?>>Integrada</option>
-                        <option value="1" <?= (($e['g_expandible'] ?? '') == 1) ? 'selected' : '' ?>>APU Ajustable</option>
+                        <option value="1" <?= (($e['g_expandible'] ?? '') == 1) ? 'selected' : '' ?>>APU Ajustable
+                        </option>
                         <option value="2" <?= (($e['g_expandible'] ?? '') == 2) ? 'selected' : '' ?>>Dedicada</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">RAM</label>
-                    <input type="text" name="memoria" value="<?= $e['memoria'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="memoria" value="<?= $e['memoria'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Disco</label>
-                    <input type="text" name="disco" value="<?= $e['disco'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="disco" value="<?= $e['disco'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Pantalla</label>
-                    <input type="text" name="pantalla" value="<?= $e['pantalla'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="pantalla" value="<?= $e['pantalla'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Resolución</label>
-                    <input type="text" name="p_resolucion" value="<?= $e['p_resolucion'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="text" name="p_resolucion" value="<?= $e['p_resolucion'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
@@ -438,88 +459,100 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Precio</label>
-                    <input type="number" name="precio" value="<?= $e['precio'] ?? '' ?>" class="w-full p-3 rounded-2xl border border-slate-200">
+                    <input type="number" step="any" name="precio" value="<?= $e['precio'] ?? '' ?>"
+                        class="w-full p-3 rounded-2xl border border-slate-200">
                 </div>
 
                 <div>
                     <label class="text-xs font-black uppercase text-slate-400">Estado</label>
                     <select id="estadoSelect" name="estado" class="w-full p-3 rounded-2xl border border-slate-200">
                         <option value="Lista" <?= (($e['estado'] ?? '') == 'Lista') ? 'selected' : '' ?>>Lista</option>
-                        <option value="NO Lista" <?= (($e['estado'] ?? '') == 'NO Lista') ? 'selected' : '' ?>>NO Lista</option>
-                        <option value="Vendida" <?= (($e['estado'] ?? '') == 'Vendida') ? 'selected' : '' ?>>Vendida</option>
-                        <option value="En camino" <?= (($e['estado'] ?? '') == 'En camino') ? 'selected' : '' ?>>En camino</option>
-                        <option value="En revision" <?= (($e['estado'] ?? '') == 'En revision') ? 'selected' : '' ?>>En revision</option>
+                        <option value="NO Lista" <?= (($e['estado'] ?? '') == 'NO Lista') ? 'selected' : '' ?>>NO Lista
+                        </option>
+                        <option value="Vendida" <?= (($e['estado'] ?? '') == 'Vendida') ? 'selected' : '' ?>>Vendida
+                        </option>
+                        <option value="En camino" <?= (($e['estado'] ?? '') == 'En camino') ? 'selected' : '' ?>>En
+                            camino</option>
+                        <option value="En revision" <?= (($e['estado'] ?? '') == 'En revision') ? 'selected' : '' ?>>En
+                            revision</option>
                     </select>
                 </div>
 
-                 <div>
+                <div>
                     <label class="text-xs font-black uppercase text-slate-400">Clase</label>
                     <select name="clase" class="w-full p-3 rounded-2xl border border-slate-200">
                         <option value="A" <?= (($e['clase'] ?? '') == 'A') ? 'selected' : '' ?>>A</option>
                         <option value="B" <?= (($e['clase'] ?? '') == 'B') ? 'selected' : '' ?>>B</option>
                         <option value="C" <?= (($e['clase'] ?? '') == 'C') ? 'selected' : '' ?>>C</option>
-                      
+
                     </select>
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="text-xs font-black uppercase text-slate-400">URL Imagen (Web)</label>
-                    <textarea name="imagen_url" rows="2" class="w-full p-3 rounded-2xl border border-slate-200"><?= $e['imagen_url'] ?? '' ?></textarea>
+                    <textarea name="imagen_url" rows="2"
+                        class="w-full p-3 rounded-2xl border border-slate-200"><?= $e['imagen_url'] ?? '' ?></textarea>
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="text-xs font-black uppercase text-slate-700 block mb-1">
-                        Añadir Fotos Propias (Opcional) - <span class="text-blue-600 lowercase font-normal">Puedes seleccionar varias para agregar al carrusel</span>
+                        Añadir Fotos Propias (Opcional) - <span class="text-blue-600 lowercase font-normal">Puedes
+                            seleccionar varias para agregar al carrusel</span>
                     </label>
-                    <input type="file" name="fotos_propias[]" multiple accept="image/*" class="w-full p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                    <input type="file" name="fotos_propias[]" multiple accept="image/*"
+                        class="w-full p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="text-xs font-black uppercase text-slate-400">Comentario</label>
-                    <textarea name="comenta" rows="5" class="w-full p-3 rounded-2xl border border-slate-200"><?= $e['comenta'] ?? '' ?></textarea>
+                    <textarea name="comenta" rows="5"
+                        class="w-full p-3 rounded-2xl border border-slate-200"><?= $e['comenta'] ?? '' ?></textarea>
                 </div>
             </div>
 
             <?php if (!empty($e['imagen_url']) || !empty($e['imagenes_adicionales'])): ?>
-                <div class="mt-8 pt-6 border-t border-slate-100">
-                    <h4 class="text-xs font-black uppercase text-slate-400 mb-3">Imágenes actuales del equipo</h4>
-                    <div class="flex flex-wrap gap-4">
-                        <?php if (!empty($e['imagen_url'])): ?>
-                            <div class="relative group">
-                                <span class="absolute top-2 left-2 bg-blue-900 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow z-10">Portada</span>
-                                <img src="<?= $e['imagen_url'] ?>" class="w-40 h-28 object-cover rounded-2xl border shadow-sm">
-                            </div>
-                        <?php endif; ?>
+            <div class="mt-8 pt-6 border-t border-slate-100">
+                <h4 class="text-xs font-black uppercase text-slate-400 mb-3">Imágenes actuales del equipo</h4>
+                <div class="flex flex-wrap gap-4">
+                    <?php if (!empty($e['imagen_url'])): ?>
+                    <div class="relative group">
+                        <span
+                            class="absolute top-2 left-2 bg-blue-900 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow z-10">Portada</span>
+                        <img src="<?= $e['imagen_url'] ?>" class="w-40 h-28 object-cover rounded-2xl border shadow-sm">
+                    </div>
+                    <?php endif; ?>
 
-                        <?php 
+                    <?php 
                         if (!empty($e['imagenes_adicionales'])) {
                             $galeria = explode(',', $e['imagenes_adicionales']);
                             foreach ($galeria as $indice => $img_extra) {
                                 $img_extra_trim = trim($img_extra);
                                 if (!empty($img_extra_trim)) {
                                     ?>
-                                    <div class="relative group w-40 h-28">
-                                        <span class="absolute top-2 left-2 bg-slate-700 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow z-10">
-                                            Foto <?= $indice + 1 ?>
-                                        </span>
-                                        
-                                        <button type="submit" name="eliminar_imagen_galeria" 
-                                                onclick="return confirm('¿Seguro que deseas eliminar permanentemente esta imagen de la galería?')"
-                                                class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-transform transform scale-0 group-hover:scale-100 z-20">
-                                            <i class="fa-solid fa-xmark text-xs"></i>
-                                        </button>
-                                        
-                                        <input type="hidden" name="imagen_ruta" value="<?= htmlspecialchars($img_extra_trim) ?>">
-                                        
-                                        <img src="<?= $img_extra_trim ?>" class="w-full h-full object-cover rounded-2xl border shadow-sm group-hover:opacity-75 transition-opacity">
-                                    </div>
-                                    <?php
+                    <div class="relative group w-40 h-28">
+                        <span
+                            class="absolute top-2 left-2 bg-slate-700 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow z-10">
+                            Foto <?= $indice + 1 ?>
+                        </span>
+
+                        <button type="submit" name="eliminar_imagen_galeria"
+                            onclick="return confirm('¿Seguro que deseas eliminar permanentemente esta imagen de la galería?')"
+                            class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-transform transform scale-0 group-hover:scale-100 z-20">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+
+                        <input type="hidden" name="imagen_ruta" value="<?= htmlspecialchars($img_extra_trim) ?>">
+
+                        <img src="<?= $img_extra_trim ?>"
+                            class="w-full h-full object-cover rounded-2xl border shadow-sm group-hover:opacity-75 transition-opacity">
+                    </div>
+                    <?php
                                 }
                             }
                         }
                         ?>
-                    </div>
                 </div>
+            </div>
             <?php endif; ?>
         </form>
     </div>
@@ -528,7 +561,7 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
     const estadoSelect = document.getElementById('estadoSelect');
     const vendidaInput = document.getElementById('vendida_at');
 
-    estadoSelect.addEventListener('change', function () {
+    estadoSelect.addEventListener('change', function() {
         if (this.value === 'Vendida') {
             const ahora = new Date();
             const fecha = ahora.getFullYear() + '-' +
@@ -544,4 +577,5 @@ $e['imagenes_adicionales'] = $e['imagenes_adicionales'] ?? '';
     });
     </script>
 </body>
+
 </html>

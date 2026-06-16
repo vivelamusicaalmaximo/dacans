@@ -66,6 +66,34 @@ $totalNoLista = $pdo->query("
     WHERE estado = 'NO Lista'
 ")->fetchColumn();
 
+/* =========================================================
+   PRODUCTOS EN PROCESO DE COMPRA (CONDICIÓN MIGRADA APLICADA)
+========================================================= */
+$totalProcesoCompra = 0;
+$valorProcesoCompra = 0;
+
+try {
+    // 1. Contamos solo los artículos que NO han sido migrados o sean NULL
+    $totalProcesoCompra = $pdo->query("
+        SELECT COUNT(*) 
+        FROM dbo.compras_articulos
+        WHERE migrada = 0 OR migrada IS NULL
+    ")->fetchColumn();
+
+    // 2. Sumamos el costo total multiplicando por su cantidad solo de los NO migrados
+    $valorProcesoCompra = $pdo->query("
+        SELECT ISNULL(SUM(costo_dop * cantidad_articulos), 0) 
+        FROM dbo.compras_articulos
+        WHERE migrada = 0 OR migrada IS NULL
+    ")->fetchColumn();
+
+} catch (PDOException $e) {
+    // Control de errores preventivo
+    $totalProcesoCompra = 0;
+    $valorProcesoCompra = 0;
+}
+
+
 $valorInventario = $pdo->query("
     SELECT ISNULL(SUM(precio),0)
     FROM productos_informatica
@@ -120,13 +148,11 @@ $anioActual = date('Y');
 $mesActual  = date('m');
 
 switch ($periodo) {
-    /* PRIMERA QUINCENA */
     case '1':
         $fechaInicio = "$anioActual-$mesActual-01";
         $fechaFin    = "$anioActual-$mesActual-15";
     break;
 
-    /* SEGUNDA QUINCENA */
     case '2':
         $fechaInicio = "$anioActual-$mesActual-16";
         $fechaFin    = date('Y-m-d');
@@ -152,7 +178,7 @@ $stmtPeriodo->execute([$fechaInicio, $fechaFin]);
 $totalPeriodo = (float)($stmtPeriodo->fetchColumn() ?? 0);
 
 /* =========================================================
-   BONOS USUARIOS (AQUÍ SE INCLUYE EL CAMPO DE REDUCCIÓN)
+   BONOS USUARIOS
 ========================================================= */
 $bonosUsuarios = $pdo->query("
     SELECT
@@ -160,17 +186,13 @@ $bonosUsuarios = $pdo->query("
         usuario,
         rol,
         porcent_ganancias,
-        reduccion_porcentaje -- Añadimos el campo necesario para evaluar la deducción
+        reduccion_porcentaje 
     FROM usuarios
     WHERE porcent_ganancias IS NOT NULL
     AND porcent_ganancias > 0
     ORDER BY usuario ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-/* =========================================================
-   PREPARAR LA CONSULTA INDIVIDUAL POR PRODUCTOS DEL PERIODO
-========================================================= */
-// Preparamos esta consulta fuera del bucle foreach para optimizar drásticamente el rendimiento
 $stmtCalcularBonoIndividual = $pdo->prepare("
     SELECT 
         ISNULL(
@@ -192,27 +214,21 @@ $stmtCalcularBonoIndividual = $pdo->prepare("
    MARCAS, PROCESADORES Y MEMORIAS
 ========================================================= */
 $marcas = $pdo->query("
-    SELECT 
-        equipo_marca,
-        COUNT(*) total
+    SELECT equipo_marca, COUNT(*) total
     FROM productos_informatica
     GROUP BY equipo_marca
     ORDER BY total DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $procesadores = $pdo->query("
-    SELECT 
-        proc_marca,
-        COUNT(*) total
+    SELECT proc_marca, COUNT(*) total
     FROM productos_informatica
     GROUP BY proc_marca
     ORDER BY total DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $memorias = $pdo->query("
-    SELECT 
-        memoria,
-        COUNT(*) total
+    SELECT memoria, COUNT(*) total
     FROM productos_informatica
     GROUP BY memoria
     ORDER BY total DESC
@@ -230,9 +246,6 @@ $ultimos = $pdo->query("
 $maxPrecio = (float)($pdo->query("SELECT ISNULL(MAX(precio), 50000) FROM productos_informatica")->fetchColumn());
 if($maxPrecio <= 0) $maxPrecio = 50000;
 
-/* ======================================================
-   OBTENER LOS ÚLTIMOS 5 EQUIPOS VENDIDOS
-====================================================== */
 $ultimos_vendidos = [];
 try {
     $stmtVendidos = $pdo->prepare("
@@ -247,7 +260,6 @@ try {
     $error_vendidos = "No se pudieron cargar los últimos vendidos: " . $ex->getMessage();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 
@@ -299,7 +311,8 @@ try {
             </a>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-5 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7 gap-5 mb-8">
+
             <a href="equipos_estado.php?estado=TODOS" class="card block w-full min-w-0 hover:scale-[1.02] transition">
                 <div class="flex items-center justify-between gap-4 min-w-0">
                     <div class="min-w-0 flex-1">
@@ -338,6 +351,21 @@ try {
                     </div>
                     <div class="w-20 h-20 rounded-3xl bg-red-100 text-red-700 flex items-center justify-center">
                         <i class="fa-solid fa-cart-shopping text-4xl"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="compras_proceso.php" class="card block hover:scale-[1.02] transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm uppercase font-bold">En Compra</p>
+                        <h2 class="text-5xl font-black text-indigo-600 mt-3"><?= number_format($totalProcesoCompra) ?>
+                        </h2>
+                        <p class="mt-3 text-indigo-700 font-black text-sm">RD$
+                            <?= number_format((float)$valorProcesoCompra, 0) ?></p>
+                    </div>
+                    <div class="w-20 h-20 rounded-3xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                        <i class="fa-solid fa-file-invoice-dollar text-4xl"></i>
                     </div>
                 </div>
             </a>
@@ -391,13 +419,11 @@ try {
                 <h2 class="text-5xl font-black text-blue-700 mt-4">RD$ <?= number_format((float)$valorInventario, 0) ?>
                 </h2>
             </div>
-
             <div class="card">
                 <p class="text-slate-400 uppercase text-sm font-bold">Valor Total Vendido</p>
                 <h2 class="text-5xl font-black text-green-700 mt-4">RD$ <?= number_format((float)$valorVendido, 0) ?>
                 </h2>
             </div>
-
             <div class="card">
                 <p class="text-slate-400 uppercase text-sm font-bold">Total
                     <?= $periodo == '1' ? 'Primera Quincena' : 'Segunda Quincena' ?></p>
@@ -451,11 +477,10 @@ try {
                         $porcentajeBase = (float)($b['porcent_ganancias'] ?? 0);
                         $reduccion      = (float)($b['reduccion_porcentaje'] ?? 0);
 
-                        // Ejecutamos el cálculo dinámico y seguro por cada producto para este usuario en particular
                         $stmtCalcularBonoIndividual->execute([
-                            $porcentajeBase,   // % Base para la resta del CAST
-                            $reduccion,        // % Deducción para la resta del CAST
-                            $porcentajeBase,   // % Base completo para el ELSE
+                            $porcentajeBase,   
+                            $reduccion,        
+                            $porcentajeBase,   
                             $fechaInicio,
                             $fechaFin
                         ]);
@@ -464,12 +489,8 @@ try {
                         $bonoMensual   = $bonoQuincenal * 2;
                         ?>
                         <tr class="border-b border-slate-100 hover:bg-blue-50/40 transition">
-                            <td class="p-4 font-black text-slate-800">
-                                <?= htmlspecialchars($b['usuario']) ?>
-                            </td>
-                            <td class="p-4 text-slate-600">
-                                <?= htmlspecialchars($b['rol']) ?>
-                            </td>
+                            <td class="p-4 font-black text-slate-800"><?= htmlspecialchars($b['usuario']) ?></td>
+                            <td class="p-4 text-slate-600"><?= htmlspecialchars($b['role'] ?? $b['rol']) ?></td>
                             <td class="p-4">
                                 <div class="flex flex-col gap-1">
                                     <span
@@ -483,12 +504,8 @@ try {
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td class="p-4 font-black text-green-700">
-                                RD$ <?= number_format($bonoQuincenal, 2) ?>
-                            </td>
-                            <td class="p-4 font-black text-cyan-700">
-                                RD$ <?= number_format($bonoMensual, 2) ?>
-                            </td>
+                            <td class="p-4 font-black text-green-700">RD$ <?= number_format($bonoQuincenal, 2) ?></td>
+                            <td class="p-4 font-black text-cyan-700">RD$ <?= number_format($bonoMensual, 2) ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
