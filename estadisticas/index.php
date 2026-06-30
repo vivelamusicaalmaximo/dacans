@@ -94,11 +94,17 @@ try {
 }
 
 
-$valorInventario = $pdo->query("
+/* =========================================================
+   INVENTARIO TOTAL (Equipos en almacén + Artículos en compra)
+========================================================= */
+$valorInventarioBase = $pdo->query("
     SELECT ISNULL(SUM(precio),0)
     FROM productos_informatica
     WHERE estado != 'Vendida'
 ")->fetchColumn();
+
+// Aquí sumamos el valor de los equipos locales más lo que viene en proceso de compra
+$valorInventario = (float)$valorInventarioBase + (float)$valorProcesoCompra;
 
 $valorVendido = $pdo->query("
     SELECT ISNULL(SUM(precio),0)
@@ -137,6 +143,20 @@ $valorNoLista = $pdo->query("
     SELECT ISNULL(SUM(precio),0)
     FROM productos_informatica
     WHERE estado = 'NO Lista'
+")->fetchColumn();
+
+// --- COLOCAR DEBAJO DE LAS OTRAS CONSULTAS DE CONTEOS ---
+$totalCredito = $pdo->query("
+    SELECT COUNT(*)
+    FROM productos_informatica
+    WHERE estado = 'CREDITO'
+")->fetchColumn();
+
+// --- COLOCAR DEBAJO DE LAS OTRAS CONSULTAS DE VALORES ---
+$valorCredito = $pdo->query("
+    SELECT ISNULL(SUM(precio),0)
+    FROM productos_informatica
+    WHERE estado = 'CREDITO'
 ")->fetchColumn();
 
 /* =========================================================
@@ -217,7 +237,7 @@ $marcas = $pdo->query("
     SELECT equipo_marca, COUNT(*) total
     FROM productos_informatica
     GROUP BY equipo_marca
-    ORDER BY total DESC
+    ORDER BY total DESC 
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $procesadores = $pdo->query("
@@ -311,7 +331,8 @@ try {
             </a>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7 gap-5 mb-8">
+        <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-5 mb-8">
 
             <a href="equipos_estado.php?estado=TODOS" class="card block w-full min-w-0 hover:scale-[1.02] transition">
                 <div class="flex items-center justify-between gap-4 min-w-0">
@@ -351,6 +372,20 @@ try {
                     </div>
                     <div class="w-20 h-20 rounded-3xl bg-red-100 text-red-700 flex items-center justify-center">
                         <i class="fa-solid fa-cart-shopping text-4xl"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="equipos_estado.php?estado=CREDITO" class="card block hover:scale-[1.02] transition">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm uppercase font-bold">A Crédito</p>
+                        <h2 class="text-5xl font-black text-amber-600 mt-3"><?= number_format($totalCredito) ?></h2>
+                        <p class="mt-3 text-amber-700 font-black text-sm">RD$
+                            <?= number_format((float)$valorCredito, 0) ?></p>
+                    </div>
+                    <div class="w-20 h-20 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                        <i class="fa-solid fa-handshake text-4xl"></i>
                     </div>
                 </div>
             </a>

@@ -16,20 +16,8 @@ if (!isset($_SESSION['admin_logueado'])) {
    CONEXION SQL SERVER
 ====================================================== */
 
-require '../config/conexion.php';
-
-try {
-
-    $pdo->setAttribute(
-        PDO::ATTR_ERRMODE,
-        PDO::ERRMODE_EXCEPTION
-    );
-
-} catch (PDOException $e) {
-
-    die("Error DB: " . $e->getMessage());
-}
-
+$dbFile = '../catalogo_equipos.sqlite';
+$pdo = new PDO("sqlite:" . $dbFile);
 /* ======================================================
    VALIDAR ID
 ====================================================== */
@@ -82,27 +70,24 @@ $precio = is_numeric($accesorio['precio'])
     <title><?= htmlspecialchars($accesorio['nombre']) ?> | DACANS</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png">
-<link rel="shortcut icon" href="/img/favicon.ico">
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon.png">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
+    body {
 
-        body {
+        background:
+            radial-gradient(circle at top left, rgba(37, 99, 235, .08), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(14, 165, 233, .08), transparent 30%),
+            #f8fafc;
+    }
 
-            background:
-                radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 30%),
-                radial-gradient(circle at bottom right, rgba(14,165,233,.08), transparent 30%),
-                #f8fafc;
-        }
+    .glass {
 
-        .glass {
-
-            background: rgba(255,255,255,.7);
-            backdrop-filter: blur(14px);
-        }
-
+        background: rgba(255, 255, 255, .7);
+        backdrop-filter: blur(14px);
+    }
     </style>
 
 </head>
@@ -119,8 +104,7 @@ $precio = is_numeric($accesorio['precio'])
 
                 <div class="bg-white p-3 rounded-2xl shadow-lg border border-slate-200">
 
-                    <img src="../img/logo.webp"
-                        class="h-12 object-contain">
+                    <img src="../img/logo.webp" class="h-12 object-contain">
 
                 </div>
 
@@ -140,7 +124,7 @@ $precio = is_numeric($accesorio['precio'])
 
             <div class="flex gap-3 flex-wrap">
 
-            
+
 
                 <a href="edit.php?id=<?= $accesorio['id'] ?>"
                     class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg transition">
@@ -174,8 +158,7 @@ $precio = is_numeric($accesorio['precio'])
 
                 <div class="aspect-square rounded-[2rem] overflow-hidden bg-slate-100 border border-slate-200">
 
-                    <img
-                        src="<?= !empty($accesorio['imagen_url'])
+                    <img src="<?= !empty($accesorio['imagen_url'])
                                     ? htmlspecialchars($accesorio['imagen_url'])
                                     : 'https://via.placeholder.com/700x700?text=NO+IMAGE' ?>"
                         class="w-full h-full object-cover">
@@ -192,7 +175,8 @@ $precio = is_numeric($accesorio['precio'])
 
                 <div class="flex items-center justify-between gap-4 flex-wrap">
 
-                    <span class="bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-xs uppercase tracking-widest font-black">
+                    <span
+                        class="bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-xs uppercase tracking-widest font-black">
 
                         <?= htmlspecialchars($accesorio['categoria']) ?>
 
@@ -271,8 +255,8 @@ $precio = is_numeric($accesorio['precio'])
                         </span>
 
                         <h4 class="text-4xl font-black text-blue-700">
-    RD$ <?= number_format($precio, 0) ?>
-</h4>
+                            RD$ <?= number_format($precio, 0) ?>
+                        </h4>
 
                     </div>
 
@@ -304,12 +288,12 @@ $precio = is_numeric($accesorio['precio'])
 
                     <?php if (!empty($accesorio['fecha_creado'])): ?>
 
-                        Registrado:
-                        <?= date('d/m/Y h:i A', strtotime($accesorio['fecha_creado'])) ?>
+                    Registrado:
+                    <?= date('d/m/Y h:i A', strtotime($accesorio['fecha_creado'])) ?>
 
                     <?php else: ?>
 
-                        Fecha no disponible
+                    Fecha no disponible
 
                     <?php endif; ?>
 
@@ -319,8 +303,7 @@ $precio = is_numeric($accesorio['precio'])
 
                 <div class="flex flex-col sm:flex-row gap-4 mt-10">
 
-                    <a href="https://wa.me/18096926631"
-                        target="_blank"
+                    <a href="https://wa.me/18096926631" target="_blank"
                         class="flex-1 bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl text-center font-black shadow-xl transition">
 
                         <i class="fa-brands fa-whatsapp mr-2"></i>

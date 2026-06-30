@@ -3,7 +3,6 @@
 session_start();
 
 if (!isset($_SESSION['admin_logueado'])) {
-
     header("Location: ../login.php");
     exit;
 }
@@ -22,33 +21,29 @@ use Dompdf\Options;
 /* =========================================================
    EQUIPOS (DESDE SESIÓN)
 ========================================================= */
-
 $equipos = $_SESSION['cotizacion'] ?? [];
 
 if (empty($equipos)) {
-
     die("No hay equipos en la cotización.");
 }
 
 /* =========================================================
    CLIENTE Y PARÁMETROS
 ========================================================= */
-
 $cliente   = $_POST['cliente']   ?? 'Cliente General';
 $rnc       = $_POST['rnc']       ?? ''; 
 $telefono  = $_POST['telefono']  ?? '809-000-0000';
 $correo    = $_POST['correo']    ?? 'cliente@email.com';
 
-$id_cliente     = isset($_POST['id_cliente']) ? (int)$_POST['id_cliente'] : 1; 
+$id_cliente    = isset($_POST['id_cliente']) ? (int)$_POST['id_cliente'] : 1; 
 $id_metodo_pago = isset($_POST['id_metodo_pago']) ? (int)$_POST['id_metodo_pago'] : 1; 
 
-$aumento   = isset($_POST['aumento']) ? (float)$_POST['aumento'] : 0.0;
-$reduccion = isset($_POST['reduccion']) ? (float)$_POST['reduccion'] : 0.0;
+$aumento        = isset($_POST['aumento']) ? (float)$_POST['aumento'] : 0.0;
+$porcentajeDesc = isset($_POST['reduccion']) ? (float)$_POST['reduccion'] : 0.0; // Recibe el porcentaje (ej: 10)
 
 /* =========================================================
    FECHA Y CONTROL DEL NÚMERO DE COTIZACIÓN EN SESIÓN
 ========================================================= */
-
 $fecha = date('d/m/Y');
 $fechaBaseDatos = date('Y-m-d H:i:s');
 
@@ -59,17 +54,24 @@ if (!isset($_SESSION['ultimo_numero_cotizacion'])) {
 $numeroCotizacion = $_SESSION['ultimo_numero_cotizacion'];
 
 /* =========================================================
-   CÁLCULOS FINANCIEROS (EXTRACCIÓN DEL 18% DE ITBIS)
+   CÁLCULOS FINANCIEROS (CON PORCENTAJE DE DESCUENTO)
 ========================================================= */
-
 $subtotalEquipos = 0;
 foreach ($equipos as $eq) {
     $subtotalEquipos += (float)$eq['precio'];
 }
 
-$precioConReduccion = $subtotalEquipos - $reduccion;
+// 1. Calculamos cuánto dinero representa el porcentaje de descuento sobre el valor de los equipos
+$dineroDescuento = $subtotalEquipos * ($porcentajeDesc / 100);
+
+// 2. Aplicamos la reducción en dinero
+$precioConReduccion = $subtotalEquipos - $dineroDescuento;
+
+// 3. Desglosamos el ITBIS (18%) del precio ya rebajado
 $subtotalSinItbis   = $precioConReduccion / 1.18;
 $itbisCalculado     = $precioConReduccion - $subtotalSinItbis;
+
+// 4. El total general suma el subtotal neto, el ITBIS y el aumento
 $totalGeneral       = $subtotalSinItbis + $itbisCalculado + $aumento;
 
 $estadoCotizacion   = 'Pendiente';
@@ -121,7 +123,6 @@ $logoSrc = 'data:image/png;base64,' . $logoData;
 /* =========================================================
    HTML DEL PDF
 ========================================================= */
-
 $html = '
 <!DOCTYPE html>
 <html lang="es">
@@ -237,6 +238,14 @@ $html .= '
             <td style="color: #64748b;">Subtotal (Sin ITBIS):</td>
             <td align="right" style="font-weight: bold;">RD$ '.number_format($subtotalSinItbis, 2).'</td>
         </tr>';
+
+        if ($porcentajeDesc > 0) {
+            $html .= '
+            <tr>
+                <td style="color: #e11d48;">Descuento ('.$porcentajeDesc.'%):</td>
+                <td align="right" style="font-weight: bold; color: #e11d48;">- RD$ '.number_format($dineroDescuento, 2).'</td>
+            </tr>';
+        }
 
         if ($aumento > 0) {
             $html .= '

@@ -1,5 +1,17 @@
 [
     {
+        "nombre": "Abraham",
+        "estrellas": 5,
+        "comentario": "Excelente servicio, trato preferencial .",
+        "fecha": "27 Jun 2026"
+    },
+    {
+        "nombre": "Fausto Rodríguez",
+        "estrellas": 5,
+        "comentario": "Excelente servicio",
+        "fecha": "16 Jun 2026"
+    },
+    {
         "nombre": "Jonathan Sanchez",
         "estrellas": 5,
         "comentario": "1-A todo en perfecta condiciones, gracias por el trato son los mejores",

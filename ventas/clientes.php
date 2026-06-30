@@ -54,6 +54,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['registrar_cliente']))
 }
 
 /* =========================================================
+   1.1 EDITAR CLIENTE
+========================================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_cliente'])) {
+
+    try {
+
+        $id_cliente = (int)$_POST['id_cliente'];
+
+        $nombre      = trim($_POST['nombre']);
+        $apellido    = trim($_POST['apellido']);
+        $rnc_cedula  = trim($_POST['rnc_cedula']);
+        $telefono    = trim($_POST['telefono']);
+        $email       = trim($_POST['email']);
+        $direccion   = trim($_POST['direccion']);
+
+        if (empty($nombre) || empty($apellido)) {
+            throw new Exception("El nombre y apellido son obligatorios.");
+        }
+
+        // Verificar duplicado de RNC/Cédula
+        if (!empty($rnc_cedula)) {
+
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM clientes
+                WHERE rnc_cedula=?
+                AND id_cliente<>?
+            ");
+
+            $stmt->execute([$rnc_cedula,$id_cliente]);
+
+            if($stmt->fetchColumn()>0){
+                throw new Exception("Ya existe otro cliente con ese RNC/Cédula.");
+            }
+
+        }
+
+        $sql="UPDATE clientes SET
+
+            nombre=?,
+            apellido=?,
+            rnc_cedula=?,
+            telefono=?,
+            email=?,
+            direccion=?
+
+            WHERE id_cliente=?";
+
+        $stmt=$pdo->prepare($sql);
+
+        $stmt->execute([
+            $nombre,
+            $apellido,
+            $rnc_cedula,
+            $telefono,
+            $email,
+            $direccion,
+            $id_cliente
+        ]);
+
+        $mensaje_success="Cliente actualizado correctamente.";
+
+    } catch(Exception $e){
+
+        $mensaje_error=$e->getMessage();
+
+    }
+
+}
+
+/* =========================================================
    2. CAMBIAR ESTADO DEL CLIENTE (ACTIVAR/DESACTIVAR)
 ========================================================= */
 if (isset($_GET['toggle_id']) && isset($_GET['estado_actual'])) {
@@ -311,6 +382,19 @@ try {
                                         </a>
                                         <?php endif; ?>
                                     </div>
+                                    <button type="button"
+                                        class="btnEditar p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition"
+                                        title="Editar Cliente" data-id="<?= $c['id_cliente'] ?>"
+                                        data-nombre="<?= htmlspecialchars($c['nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-apellido="<?= htmlspecialchars($c['apellido'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-rnc="<?= htmlspecialchars($c['rnc_cedula'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-telefono="<?= htmlspecialchars($c['telefono'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-email="<?= htmlspecialchars($c['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-direccion="<?= htmlspecialchars($c['direccion'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+                                        <i class="fa-solid fa-pen"></i>
+
+                                    </button>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -320,6 +404,79 @@ try {
             </div>
 
         </div>
+    </div>
+
+
+    <div id="modalEditar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+        <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
+
+            <h2 class="text-xl font-bold mb-5">
+                Editar Cliente
+            </h2>
+
+            <form method="POST">
+
+                <input type="hidden" name="editar_cliente">
+                <input type="hidden" name="id_cliente" id="edit_id">
+
+                <div class="grid grid-cols-2 gap-4">
+
+                    <div>
+                        <label>Nombre</label>
+                        <input id="edit_nombre" name="nombre" class="w-full border rounded-xl p-2">
+                    </div>
+
+                    <div>
+                        <label>Apellido</label>
+                        <input id="edit_apellido" name="apellido" class="w-full border rounded-xl p-2">
+                    </div>
+
+                    <div>
+                        <label>RNC/Cédula</label>
+                        <input id="edit_rnc" name="rnc_cedula" class="w-full border rounded-xl p-2">
+                    </div>
+
+                    <div>
+                        <label>Teléfono</label>
+                        <input id="edit_telefono" name="telefono" class="w-full border rounded-xl p-2">
+                    </div>
+
+                    <div class="col-span-2">
+                        <label>Email</label>
+                        <input id="edit_email" name="email" class="w-full border rounded-xl p-2">
+                    </div>
+
+                    <div class="col-span-2">
+                        <label>Dirección</label>
+
+                        <textarea id="edit_direccion" name="direccion" rows="3"
+                            class="w-full border rounded-xl p-2"></textarea>
+
+                    </div>
+
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+
+                    <button type="button" id="cerrarModal" class="px-5 py-2 bg-gray-200 rounded-xl">
+
+                        Cancelar
+
+                    </button>
+
+                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-xl">
+
+                        Guardar Cambios
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -337,7 +494,50 @@ try {
             }
         });
     });
+
+    const modal = document.getElementById("modalEditar");
+
+    document.querySelectorAll(".btnEditar").forEach(btn => {
+
+        btn.addEventListener("click", function() {
+
+            document.getElementById("edit_id").value = this.dataset.id;
+            document.getElementById("edit_nombre").value = this.dataset.nombre;
+            document.getElementById("edit_apellido").value = this.dataset.apellido;
+            document.getElementById("edit_rnc").value = this.dataset.rnc;
+            document.getElementById("edit_telefono").value = this.dataset.telefono;
+            document.getElementById("edit_email").value = this.dataset.email;
+            document.getElementById("edit_direccion").value = this.dataset.direccion;
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+
+        });
+
+    });
+
+    document.getElementById("cerrarModal").onclick = function() {
+
+        modal.classList.remove("flex");
+        modal.classList.add("hidden");
+
+    };
+
+    modal.onclick = function(e) {
+
+        if (e.target === modal) {
+
+            modal.classList.remove("flex");
+            modal.classList.add("hidden");
+
+        }
+
+    }
     </script>
+
+
+
+
 </body>
 
 </html>

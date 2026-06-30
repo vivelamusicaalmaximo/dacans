@@ -295,13 +295,15 @@ $rolSesion = $_SESSION['rol'] ?? 'empleado';
 
             <!-- CONFIGURACION -->
 
+            <?php if ($rolSesion === 'admin' || $rolSesion === 'superadmin'): ?>
+
             <div class="glass rounded-[2.5rem]
-        p-8 card-hover">
+                     p-8 card-hover">
 
                 <div class="w-20 h-20 rounded-3xl
-            bg-red-100 text-red-700
-            flex items-center justify-center
-            text-4xl mb-6">
+                bg-red-100 text-red-700
+                  flex items-center justify-center
+                   text-4xl mb-6">
 
                     <i class="fa-solid fa-gear"></i>
 
@@ -328,6 +330,7 @@ $rolSesion = $_SESSION['rol'] ?? 'empleado';
                 </div>
 
             </div>
+            <?php endif  ?>
 
         </div>
 

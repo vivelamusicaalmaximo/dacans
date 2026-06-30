@@ -165,17 +165,17 @@ if (isset($_POST['guardar_nuevo'])) {
         // INSERCIÓN EN LA BASE DE DATOS
         // --------------------------------------------------
         $sql = "INSERT INTO productos_informatica (
-            id_local, serie, proc_marca, proc_familia, proc_generacion, proc_modelo,
+            id_local, id_categoria, proc_marca, proc_familia, proc_generacion, proc_modelo,
             graficos, g_expandible, memoria, disco, pantalla, p_resolucion, touch,
             precio, estado, comenta, equipo_marca, equipo_modelo, imagen_url,
-            imagenes_adicionales, created_at, vendida_at,clase
+            imagenes_adicionales, created_at, vendida_at, clase
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $pdo->prepare($sql);
 
         $stmt->execute([
             $id_a_registrar,
-            $_POST['serie'] ?: null,
+            !empty($_POST['id_categoria']) ? $_POST['id_categoria'] : null, 
             $_POST['proc_marca'] ?: null,
             $_POST['proc_familia'] ?: null,
             $_POST['proc_generacion'] ?: null,
@@ -230,17 +230,31 @@ if (isset($_POST['guardar_nuevo'])) {
     }
 }
 
+
+
 /* ======================================================
-   OBTENER EQUIPOS
+   OBTENER EQUIPOS (CON LEFT JOIN A CATEGORIAS)
 ====================================================== */
 $query = $pdo->query("
-    SELECT *
-    FROM productos_informatica
-    WHERE estado != 'Vendida'
-    ORDER BY equipo_marca ASC
+    SELECT p.*, c.nombre_serie, c.prefijo
+    FROM productos_informatica p
+    LEFT JOIN categoria c ON p.id_categoria = c.id_categoria
+    WHERE p.estado != 'Vendida' 
+      AND p.estado != 'credito' 
+      AND p.estado != 'Eliminado'
+    ORDER BY p.equipo_marca ASC
 ");
 
 $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
+/* ======================================================
+   OBTENER CATEGORIAS (SERIES DISPONIBLES)
+====================================================== */
+$queryCat = $pdo->query("
+    SELECT id_categoria, nombre_serie, prefijo 
+    FROM categoria 
+    ORDER BY id_categoria ASC
+");
+$categorias_disponibles = $queryCat->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 
@@ -428,6 +442,28 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
             padding: 4px 3px !important;
         }
     }
+
+    .filters th {
+        padding: 6px 3px !important;
+        background: #f8fafc !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+        overflow: visible !important;
+    }
+
+    [id^="dropdown-col-"] {
+        background-color: #ffffff;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+    }
+
+    [id^="dropdown-col-"]::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    [id^="dropdown-col-"]::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
     </style>
 </head>
 
@@ -448,10 +484,14 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
                     class="bg-slate-900 hover:bg-black text-white px-5 py-3 rounded-2xl font-black shadow-lg transition">
                     <i class="fa-solid fa-screwdriver-wrench mr-2"></i> Mantenimiento
                 </a>
-                <a href="exportar_excel.php"
-                    class="bg-green-700 hover:bg-green-800 text-white px-5 py-3 rounded-2xl font-bold text-sm shadow-lg transition">
+                <button type="button" id="btnExportarExcel"
+                    class="bg-green-700 hover:bg-green-800 text-white px-5 py-3 rounded-2xl font-bold text-sm shadow-lg transition cursor-pointer">
                     <i class="fa-solid fa-file-excel mr-2"></i> Exportar Excel
-                </a>
+                </button>
+
+                <form id="formExportarExcel" action="exportar_excel.php" method="POST" style="display:none;">
+                    <input type="hidden" name="ids_filtrados" id="ids_filtrados">
+                </form>
                 <?php endif; ?>
 
                 <?php if($rolSesion !== 'empleado'): ?>
@@ -532,7 +572,17 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
                                 </div>
                             </td>
                             <td class="font-black text-blue-700"><?= $e['id_local'] ?></td>
-                            <td><?= $e['serie'] ?: '-' ?></td>
+
+                            <td class="font-bold text-slate-800">
+                                <?php if (!empty($e['nombre_serie'])): ?>
+                                <span class="px-2 py-1 rounded bg-blue-50 text-blue-800 text-[11px] uppercase">
+                                    <?= htmlspecialchars($e['nombre_serie']) ?> (<?= htmlspecialchars($e['prefijo']) ?>)
+                                </span>
+                                <?php else: ?>
+                                <span class="text-slate-400">-</span>
+                                <?php endif; ?>
+                            </td>
+
                             <td><?= $e['equipo_marca'] ?></td>
                             <td><?= $e['equipo_modelo'] ?></td>
                             <td><?= $e['proc_marca'] ?></td>
@@ -540,22 +590,36 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= $e['proc_modelo'] ?></td>
                             <td><?= $e['proc_generacion'] ?></td>
                             <td><?= $e['graficos'] ?></td>
-                            <td class="font-bold"><?= $e['g_expandible'] == 1 ? 'SI' : 'NO' ?></td>
+
+                            <td class="font-bold text-[11px]">
+                                <?php 
+                                    if ($e['g_expandible'] == 2) {
+                                        echo '<span class="text-red-600">Dedicada</span>';
+                                    } elseif ($e['g_expandible'] == 1) {
+                                        echo '<span class="text-amber-600">APU</span>';
+                                    } else {
+                                        echo '<span class="text-slate-500">Integrada</span>';
+                                    }
+                                ?>
+                            </td>
+
                             <td><?= $e['memoria'] ?></td>
                             <td><?= $e['disco'] ?></td>
                             <td><?= $e['pantalla'] ?></td>
                             <td><?= $e['p_resolucion'] ?></td>
                             <td class="font-bold"><?= $e['touch'] == 1 ? 'SI' : 'NO' ?></td>
                             <td class="font-black">
-                                <?= !empty($e['precio']) ? 'RD$ ' . number_format($e['precio'], 0) : '-' ?></td>
+                                <?= !empty($e['precio']) ? 'RD$ ' . number_format($e['precio'], 0) : '-' ?>
+                            </td>
                             <td class="max-w-[180px] text-[11px] leading-tight"><?= $e['comenta'] ?></td>
                             <td>
                                 <span class="status-badge <?= 
-                                        $e['estado'] == 'Vendida' ? 'bg-red-100 text-red-600' : 
-                                        ($e['estado'] == 'NO Lista' ? 'bg-yellow-100 text-yellow-700' : 
-                                        ($e['estado'] == 'En camino' ? 'bg-blue-100 text-blue-700' : 
-                                        ($e['estado'] == 'En revision' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-600'))) 
-                                    ?>"><?= $e['estado'] ?></span>
+                                     $e['estado'] == 'Vendida' ? 'bg-red-100 text-red-600' : 
+                                    ($e['estado'] == 'NO Lista' ? 'bg-yellow-100 text-yellow-700' : 
+                                    ($e['estado'] == 'En camino' ? 'bg-blue-100 text-blue-700' :
+                                    ($e['estado'] == 'Cementerio' ? 'bg-red-100 text-blue-700' :
+                                    ($e['estado'] == 'En revision' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-600')))) 
+                                ?>"><?= $e['estado'] ?></span>
                             </td>
                             <td><?= $e['created_at'] ?></td>
                             <td><?= $e['vendida_at'] ?></td>
@@ -589,12 +653,21 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
                                 class="w-full p-3 rounded-2xl bg-slate-100 border border-slate-200 text-blue-700 font-black">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Serie</label>
-                            <input type="text" name="serie" id="serie" placeholder="Opcional"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Serie / Clasificación
+                                <span class="text-red-500">*</span></label>
+                            <select name="id_categoria" id="id_categoria" required
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700 invalid:border-red-300">
+                                <option value="">-- Seleccione una Serie --</option>
+                                <?php foreach ($categorias_disponibles as $cat): ?>
+                                <option value="<?= $cat['id_categoria'] ?>">
+                                    <?= htmlspecialchars($cat['nombre_serie']) ?> (<?= $cat['prefijo'] ?>)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Marca</label>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Marca <span
+                                    class="text-red-500">*</span></label>
                             <input type="text" required name="equipo_marca" id="equipo_marca"
                                 placeholder="Dell / Lenovo"
                                 class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
@@ -667,148 +740,250 @@ $equipos = $query->fetchAll(PDO::FETCH_ASSOC);
                                 <option value="En revision">En revision</option>
                             </select>
                         </div>
+
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Memoria RAM</label>
+                            <input type="text" name="memoria" id="memoria" placeholder="16GB DDR4"
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Almacenamiento
+                                (Disco)</label>
+                            <input type="text" name="disco" id="disco" placeholder="512GB NVMe"
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Precio (RD$)</label>
+                            <input type="number" name="precio" id="precio" placeholder="25000"
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Clase /
+                                Condición</label>
+                            <input type="text" name="clase" id="clase" placeholder="A+ / Open Box"
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">URL Imagen
+                                Principal</label>
+                            <input type="text" name="imagen_url" id="imagen_url"
+                                placeholder="https://ejemplo.com/imagen.jpg"
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Subir Fotos
+                                Propias</label>
+                            <input type="file" name="fotos_propias[]" id="fotos_propias" multiple
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+
                         <div class="md:col-span-2">
                             <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Comentario</label>
                             <textarea name="comenta" id="comenta" rows="4"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                placeholder="Detalles adicionales..."></textarea>
+                                placeholder="Detalles estéticos o de software..."
+                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
                         </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">RAM</label>
-                            <input type="text" name="memoria" id="memoria" placeholder="16 G"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Disco</label>
-                            <input type="text" name="disco" id="disco" placeholder="512 G / 1 TB"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Precio RD$</label>
-                            <input type="number" name="precio" id="precio" placeholder="Opcional"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-blue-700">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">URL Imagen (Web)</label>
-                            <input type="text" name="imagen_url" id="imagen_url" placeholder="https://..."
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-[10px] font-black uppercase text-slate-700 ml-2 block mb-1">Subir Fotos
-                                Propias (Local/Dispositivo) - <span class="text-blue-600 lowercase font-normal">Puedes
-                                    seleccionar varias</span></label>
-                            <input type="file" name="fotos_propias[]" multiple accept="image/*"
-                                class="w-full p-3 rounded-2xl bg-slate-100 border border-dashed border-slate-300 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2">Clase</label>
-                            <select name="clase" id="clase"
-                                class="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
-                                <option value="Laptop">A</option>
-                                <option value="Desktop">B</option>
-                                <option value="Tablet">C</option>
-
-                            </select>
-                        </div>
-
-
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-3 mt-8">
-                        <button type="submit" name="guardar_nuevo"
-                            class="flex-1 bg-blue-900 hover:bg-black transition text-white py-4 rounded-2xl font-black shadow-xl">GUARDAR
-                            EQUIPO</button>
+                    <div class="mt-6 flex justify-end gap-2">
                         <button type="button" onclick="closeModal()"
-                            class="flex-1 sm:flex-none px-8 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-600 transition">CANCELAR</button>
+                            class="bg-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-300 transition">Cancelar</button>
+                        <button type="submit" name="guardar_nuevo"
+                            class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-blue-700 shadow-lg transition">Guardar
+                            Equipo</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
     <script>
     $(document).ready(function() {
-        $('#tablaInventario').DataTable({
-            pageLength: 15,
-            responsive: true,
-            autoWidth: false,
-            scrollX: false,
-            paging: true,
-            searching: true,
-            ordering: true,
-            info: true,
-            lengthChange: false,
+        // 1. Clonar la fila del encabezado para colocar los filtros multiselección
+        $('#tablaInventario thead tr').clone(true).addClass('filters').appendTo('#tablaInventario thead');
+
+        // 2. Inicializar DataTable
+        var table = $('#tablaInventario').DataTable({
+            orderCellsTop: true,
+            fixedHeader: true,
+            responsive: false,
+            pageLength: 25,
             language: {
                 url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+
+            // 3. Crear los filtros multiselección al completar la carga
+            initComplete: function() {
+                var api = this.api();
+
+                api.columns().eq(0).each(function(colIdx) {
+                    var cell = $('.filters th').eq($(api.column(colIdx).header()).index());
+
+                    // Ignorar la columna 0 (Acciones)
+                    if (colIdx === 0) {
+                        cell.html('');
+                        return;
+                    }
+
+                    // Generar un ID único para controlar el despliegue de cada columna
+                    var idDropdown = 'dropdown-col-' + colIdx;
+
+                    // Estructura HTML del botón desplegable estilo Excel
+                    var dropdownHtml = `
+                    <div class="relative inline-block text-left w-full select-none">
+                        <button type="button" onclick="toggleDropdown(event, '${idDropdown}')" 
+                            class="w-full flex items-center justify-between p-1 text-[10px] text-slate-700 bg-slate-50 border border-slate-300 rounded-lg shadow-sm hover:bg-slate-100 outline-none">
+                            <span class="truncate">Filtrar...</span>
+                            <i class="fa-solid fa-chevron-down text-[8px] ml-1 text-slate-400"></i>
+                        </button>
+                        <div id="${idDropdown}" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto p-2 text-left text-[11px] font-normal">
+                            </div>
+                    </div>
+                `;
+
+                    var $dropdownContainer = $(dropdownHtml).appendTo(cell.empty());
+                    var $listContainer = $dropdownContainer.find('#' + idDropdown);
+
+                    // Obtener datos únicos y limpios de la columna
+                    var opcionesUnicas = [];
+                    api.column(colIdx).data().unique().sort().each(function(d) {
+                        if (d !== null && d !== undefined) {
+                            // Aseguramos que sea String y removemos etiquetas HTML y espacios en blanco extremos
+                            var textoLimpio = String(d).replace(/<[^>]*>/g, "")
+                                .trim();
+
+                            if (textoLimpio !== "" && textoLimpio !== "-" && !
+                                opcionesUnicas.includes(textoLimpio)) {
+                                opcionesUnicas.push(textoLimpio);
+                            }
+                        }
+                    });
+
+                    // Insertar los checkboxes en la lista desplegable
+                    opcionesUnicas.forEach(function(valor) {
+                        var checkboxHtml = `
+    <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 w-full">
+        <input type="checkbox" value="${valor}" class="filter-checkbox rounded text-blue-600 border-slate-300 focus:ring-blue-500 w-3 h-3">
+        <span class="truncate">${valor}</span>
+    </label>
+    `;
+                        $listContainer.append(checkboxHtml);
+                    });
+
+                    // Escuchar el evento de cambio en los checkboxes de ESTA columna
+                    // Escuchar el evento de cambio en los checkboxes de ESTA columna
+                    $listContainer.on('change', '.filter-checkbox', function() {
+                        var valoresSeleccionados = [];
+
+                        // Recolectar todos los valores que el usuario marcó con un "check"
+                        $listContainer.find('.filter-checkbox:checked').each(
+                            function() {
+                                valoresSeleccionados.push($.fn.dataTable.util
+                                    .escapeRegex($(this).val()));
+                            });
+
+                        if (valoresSeleccionados.length > 0) {
+
+                            // Búsqueda exacta de cada valor
+                            var regexSearch = valoresSeleccionados
+                                .map(function(valor) {
+                                    return '^' + valor + '$';
+                                })
+                                .join('|');
+
+                            api.column(colIdx).search(regexSearch, true, false);
+
+                        } else {
+
+                            api.column(colIdx).search('', true, false);
+
+                        }
+
+                        // ======================================================
+                        // LOGICA CORREGIDA PARA EL PAGINADO USANDO LA API INTERNA
+                        // ======================================================
+
+                        // Verificamos si hay al menos un checkbox marcado en cualquier columna
+                        var hayFiltrosActivos = $('.filter-checkbox:checked')
+                            .length > 0;
+
+                        if (hayFiltrosActivos) {
+                            // Usamos 'api' en lugar de 'table' para cambiar a "Mostrar todos" (-1)
+                            api.page.len(-1);
+                        } else {
+                            // Si no hay filtros, regresamos al paginado normal de 25
+                            api.page.len(25);
+                        }
+
+                        // Redibujar los cambios en la tabla
+                        api.draw();
+                    });
+                });
             }
+        });
+
+        // ======================================================
+        // LOGICA EXPORTACION EXCEL (Se mantiene intacta)
+        // ======================================================
+        $('#btnExportarExcel').on('click', function() {
+            var ids = [];
+            table.rows({
+                search: 'applied'
+            }).every(function() {
+                var data = this.data();
+                var idLocal = $(data[1]).text() || data[1];
+                ids.push(idLocal.trim());
+            });
+            $('#ids_filtrados').val(ids.join(','));
+            $('#formExportarExcel').submit();
         });
     });
 
+    // Función global para abrir y cerrar el menú desplegable al hacer clic
+    function toggleDropdown(event, id) {
+        event.stopPropagation();
+
+        // Cerrar cualquier otro dropdown que pudiera estar abierto
+        $('[id^="dropdown-col-"]').not('#' + id).addClass('hidden');
+
+        // Alternar visibilidad del actual
+        $('#' + id).toggleClass('hidden');
+    }
+
+    // Cerrar los menús si el usuario hace clic en cualquier otra parte fuera de ellos
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.relative').length) {
+            $('[id^="dropdown-col-"]').addClass('hidden');
+        }
+    });
+    </script>
+
+    <script>
     function openModal() {
-        document.getElementById('modalRegistro').classList.remove('hidden');
+        const modal = document.getElementById('modalRegistro');
+        if (modal) {
+            modal.classList.remove('hidden');
+            // Opcional: Evita que la página trasera se mueva mientras el modal está abierto
+            document.body.style.overflow = 'hidden';
+        } else {
+            console.error("Error: No se encontró ningún elemento con el id 'modalRegistro'");
+        }
     }
 
     function closeModal() {
-        document.getElementById('modalRegistro').classList.add('hidden');
+        const modal = document.getElementById('modalRegistro');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Devuelve el scroll a la página
+        }
     }
-
-    // --- SISTEMA DE AUTORELLENADO POR MODELO ---
-    document.getElementById('equipo_modelo').addEventListener('blur', function() {
-        const modeloVal = this.value.trim();
-
-        // Si tiene menos de 2 caracteres no buscamos nada
-        if (modeloVal.length < 2) return;
-
-        // Llamada AJAX nativa con Fetch API al archivo que creamos antes
-        fetch(`buscar_modelo.php?modelo=${encodeURIComponent(modeloVal)}`)
-            .then(response => response.json())
-            .then(res => {
-                if (res.success) {
-                    const info = res.data;
-
-                    // Rellenamos los campos únicamente si están vacíos actualmente
-                    if (!document.getElementById('equipo_marca').value) document.getElementById(
-                        'equipo_marca').value = info.equipo_marca || '';
-                    if (!document.getElementById('proc_marca').value) document.getElementById('proc_marca')
-                        .value = info.proc_marca || '';
-                    if (!document.getElementById('proc_familia').value) document.getElementById(
-                        'proc_familia').value = info.proc_familia || '';
-                    if (!document.getElementById('proc_generacion').value) document.getElementById(
-                        'proc_generacion').value = info.proc_generacion || '';
-                    if (!document.getElementById('proc_modelo').value) document.getElementById(
-                        'proc_modelo').value = info.proc_modelo || '';
-                    if (!document.getElementById('graficos').value) document.getElementById('graficos')
-                        .value = info.graficos || '';
-                    if (!document.getElementById('memoria').value) document.getElementById('memoria')
-                        .value = info.memoria || '';
-                    if (!document.getElementById('disco').value) document.getElementById('disco').value =
-                        info.disco || '';
-                    if (!document.getElementById('pantalla').value) document.getElementById('pantalla')
-                        .value = info.pantalla || '';
-                    if (!document.getElementById('p_resolucion').value) document.getElementById(
-                        'p_resolucion').value = info.p_resolucion || '';
-                    if (!document.getElementById('precio').value) document.getElementById('precio').value =
-                        info.precio || '';
-                    if (!document.getElementById('imagen_url').value) document.getElementById('imagen_url')
-                        .value = info.imagen_url || '';
-
-                    // Selectores dinámicos
-                    document.getElementById('g_expandible').value = info.g_expandible !== null ? info
-                        .g_expandible : '0';
-                    document.getElementById('touch').value = info.touch !== null ? info.touch : '0';
-
-                    // Animación o feedback visual rápido en verde para avisar al usuario
-                    this.classList.add('border-green-500', 'ring-2', 'ring-green-200');
-                    setTimeout(() => this.classList.remove('border-green-500', 'ring-2', 'ring-green-200'),
-                        1500);
-                }
-            })
-            .catch(err => console.error("Error al obtener el auto-completado:", err));
-    });
     </script>
+</body>
+
+</html>
 </body>
 
 </html>

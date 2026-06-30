@@ -13,6 +13,27 @@ if (!file_exists($json_file)) {
     file_put_contents($json_file, json_encode($comentarios_iniciales, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
+/* =========================================================
+   1. INCLUIR CONEXIÓN A LA BASE DE DATOS (Faltaba esto 🔑)
+========================================================= */
+require 'config/conexion.php'; 
+
+/* =========================================================
+   2. REGISTRO AUTOMÁTICO DE VISITAS
+========================================================= */
+try {
+    $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? 'Desconocida';
+    
+    // Esto detecta automáticamente la ruta de esta nueva página
+    $pagina_visitada = $_SERVER['REQUEST_URI'] ?? 'Otra Pagina';
+
+    $sqlVisita = "INSERT INTO registro_visitas (ip_usuario, pagina_visitada) VALUES (?, ?)";
+    $stmtVisita = $pdo->prepare($sqlVisita);
+    $stmtVisita->execute([$ip_usuario, $pagina_visitada]);
+} catch (Exception $e) {
+    // Silencioso: si falla la DB por las visitas, los comentarios siguen funcionando
+}
+
 // Procesar el formulario cuando el usuario envía un comentario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'nuevo_comentario') {
     $nombre = strip_tags(trim($_POST['nombre'] ?? 'Anónimo'));

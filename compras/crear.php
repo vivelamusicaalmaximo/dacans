@@ -7,7 +7,6 @@ if (!isset($_SESSION['admin_logueado'])) {
 }
 
 // 1. INCLUIR TU CONEXIÓN DE SQL SERVER
-// Asegúrate de que la ruta relativa sea correcta. Si estás dentro de una carpeta (ej. 'compras/crear.php'), un nivel arriba sería '../config/conexion.php'
 require_once '../config/conexion.php'; 
 
 /* =========================================================
@@ -76,10 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
 
     } catch (PDOException $e) {
-        // Captura errores específicos de SQL Server por si falla algún tipo de dato o constraint
         die("Error al guardar en SQL Server: " . $e->getMessage());
     }
-}
+} // Cierre del IF del POST
 ?>
 
 <!DOCTYPE html>
@@ -167,17 +165,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div>
                         <label class="label">Cantidad</label>
-                        <input type="number" name="cantidad_articulos" value="1" class="input">
+                        <input type="number" id="cantidad_articulos" name="cantidad_articulos" value="1" class="input">
                     </div>
 
                     <div>
                         <label class="label">Costo USD</label>
-                        <input type="number" step="0.01" name="costo_usd" value="0" class="input">
+                        <input type="number" step="0.01" id="costo_usd" name="costo_usd" value="0" class="input">
                     </div>
 
                     <div>
-                        <label class="label">Costo DOP</label>
-                        <input type="number" step="0.01" name="costo_dop" value="0" class="input">
+                        <label class="label">Costo DOP <span id="tasa_info"
+                                class="text-xs text-blue-500 font-normal"></span></label>
+                        <input type="number" step="0.01" id="costo_dop" name="costo_dop" value="0" class="input">
                     </div>
 
                     <div>
@@ -217,9 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div>
                         <label class="label">Dirección</label>
                         <select name="direccion_usada" class="input">
-
+                            <option value="D01-050381 Daniel Candelario">Sin Dirección</option>
                             <option value="D01-050381 Daniel Candelario"> D01-050381 Daniel Candelario</option>
-
                             <option value="D01-064428 Sandra Solano"> D01-064428 Sandra Solano</option>
                             <option value="D01-117254 Silvia Guigni"> D01-117254 Silvia Guigni</option>
                             <option value="D01-117374 Yovanny Marquez"> D01-117374 Yovanny Marquez</option>
@@ -260,6 +258,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputUsd = document.getElementById('costo_usd');
+        const inputDop = document.getElementById('costo_dop');
+        const tasaInfo = document.getElementById('tasa_info');
+
+        let tasaCambio = 0;
+
+        // 1. Obtener la tasa de cambio del día al cargar la página
+        async function obtenerTasaCambio() {
+            try {
+                // API pública y gratuita (USD a DOP)
+                const respuesta = await fetch('https://open.er-api.com/v6/latest/USD');
+                if (!respuesta.ok) throw new Error('Error al conectar con la API');
+
+                const datos = await respuesta.json();
+                tasaCambio = datos.rates.DOP;
+
+                // Mostrar la tasa al usuario de forma sutil
+                tasaInfo.textContent = `(Tasa: RD$${tasaCambio.toFixed(2)})`;
+            } catch (error) {
+                console.error('No se pudo obtener la tasa automatizada:', error);
+                // Tasa de respaldo por si falla el internet o la API
+                tasaCambio = 60.50;
+                tasaInfo.textContent = `(Tasa estática: RD$${tasaCambio.toFixed(2)})`;
+            }
+        }
+
+        // 2. Escuchar lo que escribe el usuario en el campo USD
+        inputUsd.addEventListener('input', function() {
+            const valorUsd = parseFloat(inputUsd.value) || 0;
+            if (tasaCambio > 0) {
+                // Calcular y fijar a 2 decimales
+                inputDop.value = (valorUsd * tasaCambio).toFixed(2);
+            }
+        });
+
+        // Inicializar la consulta de la tasa
+        obtenerTasaCambio();
+    });
+    </script>
 </body>
 
 </html>
